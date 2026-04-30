@@ -153,7 +153,6 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
     private var currentController: CookbookPageController?
     private var currentRoute: Route = .tableOfContents
     private var currentSize = CGSize(width: 800, height: 600)
-    private var currentHeaderHeight: CGFloat = 0
     private var initialData = Data()
     private var didRegisterLayer = false
 
@@ -175,9 +174,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                                      proxyPassword: arguments.proxy?.password)
             appearance = arguments.appearance ?? NSAppearance.currentDrawing()
             initialData = arguments.data ?? Data()
-            let metrics = Self.contentMetrics(from: arguments.contentShape)
-            currentSize = metrics.size
-            currentHeaderHeight = metrics.headerHeight
+            currentSize = CGSize(width: arguments.contentWidth ?? 800,
+                                 height: arguments.contentHeight ?? 600)
 
             let root = CALayer()
             root.frame = CGRect(origin: .zero, size: currentSize)
@@ -203,7 +201,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
 
         case .mouseEvent(let kind, let x, let y, let modifierFlags, let clickCount):
             let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
-            guard Self.contentRect(size: currentSize, headerHeight: currentHeaderHeight).contains(point) else { return }
+            guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
             let flags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
             switch kind {
             case .mouseMoved:
@@ -220,7 +218,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
 
         case .scrollWheelEvent(let x, let y, let deltaX, let deltaY, let modifierFlags, let phase, let momentumPhase, let isMomentum, let isPrecise):
             let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
-            guard Self.contentRect(size: currentSize, headerHeight: currentHeaderHeight).contains(point) else { return }
+            guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
             currentController?.scrollWheel(delta: CGPoint(x: CGFloat(deltaX), y: CGFloat(deltaY)),
                                            at: point,
                                            modifierFlags: NSEvent.ModifierFlags(rawValue: UInt(modifierFlags)),
@@ -232,10 +230,6 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         case .systemAppearanceUpdate(let appearance):
             self.appearance = appearance
             switchToRoute(currentRoute)
-
-        case .headerMetricsUpdate(let headerHeight):
-            currentHeaderHeight = headerHeight
-            layoutCurrentPage()
 
         case .copySelectedPasteboardRequest(let requestId):
             outerframeHost.sendCopySelectedPasteboardResponse(requestId: requestId, items: [])
@@ -327,7 +321,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
     }
 
     private var currentContentSize: CGSize {
-        Self.contentRect(size: currentSize, headerHeight: currentHeaderHeight).size
+        currentSize
     }
 
     private func layoutCurrentPage() {
@@ -339,21 +333,6 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         CATransaction.commit()
     }
 
-    private static func contentMetrics(from shape: ContentShape?) -> (size: CGSize, headerHeight: CGFloat) {
-        switch shape {
-        case .rectangle(let width, let height):
-            return (CGSize(width: width, height: height), 0)
-        case .contentWithHeader(let totalWidth, let totalHeight, let headerHeight):
-            return (CGSize(width: totalWidth, height: totalHeight), headerHeight)
-        case nil:
-            return (CGSize(width: 800, height: 600), 0)
-        }
-    }
-
-    private static func contentRect(size: CGSize, headerHeight: CGFloat) -> CGRect {
-        let contentHeight = max(size.height - headerHeight, 0)
-        return CGRect(x: 0, y: 0, width: size.width, height: contentHeight)
-    }
 }
 
 @MainActor
