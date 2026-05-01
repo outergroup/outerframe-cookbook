@@ -81,6 +81,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         case nestedScroll
         case timelineRange
         case giantPageWithAnimations
+        case nDimensionalCubeShadow
 
         var pageTitle: String {
             switch self {
@@ -94,6 +95,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                 return "Timeline Range Selector"
             case .giantPageWithAnimations:
                 return "Giant Page With Animations"
+            case .nDimensionalCubeShadow:
+                return "N-Dimensional Cube Shadow"
             }
         }
 
@@ -109,6 +112,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                 return "A draggable chart selection surface with hover feedback."
             case .giantPageWithAnimations:
                 return "A virtualized page with many synchronized animations."
+            case .nDimensionalCubeShadow:
+                return "Translucent face projections from a rotating N-dimensional cube."
             }
         }
 
@@ -137,6 +142,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                 return .timelineRange
             case "giant_page", "giant", "animations":
                 return .giantPageWithAnimations
+            case "n_cube", "ncube", "cube_shadow", "hypercube":
+                return .nDimensionalCubeShadow
             default:
                 return .tableOfContents
             }
@@ -264,6 +271,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         switch route {
         case .tableOfContents:
             controller = CookbookTableOfContentsContentController(appearance: resolvedAppearance,
+                                                                  appConnection: outerframeHost,
                                                                   selectRoute: { [weak self] route in
                                                                       self?.switchToRoute(route)
                                                                   })
@@ -275,6 +283,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             controller = TimelineRangeSelectorContentController(appConnection: outerframeHost)
         case .giantPageWithAnimations:
             controller = GiantPageWithAnimations(appConnection: outerframeHost)
+        case .nDimensionalCubeShadow:
+            controller = NDimensionalCubeShadowContentController(appConnection: outerframeHost)
         }
 
         CATransaction.begin()
@@ -352,14 +362,19 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     }
 
     private let appearance: NSAppearance
+    private let appConnection: OuterframeHost
     private let selectRoute: (OuterframeCookbookHandler.Route) -> Void
     private var rootLayer: CALayer?
     private var viewportLayer: CALayer?
+    private var contentLayer: CALayer?
     private var titleLayer: CATextLayer?
     private var subtitleLayer: CATextLayer?
     private var entryLayers: [EntryLayers] = []
+    private var scrollbarController: ScrollbarController<CookbookTableOfContentsContentController>?
     private var currentSize = CGSize(width: 800, height: 600)
+    private var scrollOffset: CGFloat = 0
     private var highlightedRoute: OuterframeCookbookHandler.Route?
+    private var isPressingEntry = false
 
     private let entries: [Entry] = [
         Entry(route: .manualScroll,
@@ -373,11 +388,23 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
               description: OuterframeCookbookHandler.Route.timelineRange.description),
         Entry(route: .giantPageWithAnimations,
               title: OuterframeCookbookHandler.Route.giantPageWithAnimations.pageTitle,
-              description: OuterframeCookbookHandler.Route.giantPageWithAnimations.description)
+              description: OuterframeCookbookHandler.Route.giantPageWithAnimations.description),
+        Entry(route: .nDimensionalCubeShadow,
+              title: OuterframeCookbookHandler.Route.nDimensionalCubeShadow.pageTitle,
+              description: OuterframeCookbookHandler.Route.nDimensionalCubeShadow.description)
     ]
 
-    init(appearance: NSAppearance, selectRoute: @escaping (OuterframeCookbookHandler.Route) -> Void) {
+    private let rowHeight: CGFloat = 78
+    private let rowGap: CGFloat = 12
+    private let bottomPadding: CGFloat = 56
+    private let scrollbarWidth: CGFloat = 8
+    private let scrollbarInset: CGFloat = 4
+
+    init(appearance: NSAppearance,
+         appConnection: OuterframeHost,
+         selectRoute: @escaping (OuterframeCookbookHandler.Route) -> Void) {
         self.appearance = appearance
+        self.appConnection = appConnection
         self.selectRoute = selectRoute
         super.init()
     }
@@ -395,17 +422,20 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         viewport.masksToBounds = true
         root.addSublayer(viewport)
 
+        let content = CALayer()
+        viewport.addSublayer(content)
+
         let title = makeTextLayer(font: .systemFont(ofSize: 30, weight: .semibold),
                                   fontSize: 30,
                                   color: .labelColor)
         title.string = "Outerframe Cookbook"
-        viewport.addSublayer(title)
+        content.addSublayer(title)
 
         let subtitle = makeTextLayer(font: .systemFont(ofSize: 15, weight: .regular),
                                      fontSize: 15,
                                      color: .secondaryLabelColor)
         subtitle.string = "Pick a layer-backed outerframe example."
-        viewport.addSublayer(subtitle)
+        content.addSublayer(subtitle)
 
         var layers: [EntryLayers] = []
         for entry in entries {
@@ -413,7 +443,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
             container.isGeometryFlipped = true
             container.cornerRadius = 8
             container.borderWidth = 1
-            viewport.addSublayer(container)
+            content.addSublayer(container)
 
             let entryTitle = makeTextLayer(font: .systemFont(ofSize: 17, weight: .semibold),
                                            fontSize: 17,
@@ -444,9 +474,19 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
 
         rootLayer = root
         viewportLayer = viewport
+        contentLayer = content
         titleLayer = title
         subtitleLayer = subtitle
         entryLayers = layers
+
+        let scrollbar = ScrollbarController<CookbookTableOfContentsContentController>(appConnection: appConnection,
+                                                                                     viewportLayer: viewport,
+                                                                                     appearance: appearance,
+                                                                                     width: scrollbarWidth,
+                                                                                     inset: scrollbarInset)
+        scrollbar.delegate = self
+        scrollbarController = scrollbar
+
         updateColors()
         layout()
         return root
@@ -458,14 +498,18 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     }
 
     func cleanup() {
+        scrollbarController?.cleanup()
+        scrollbarController = nil
         rootLayer = nil
         viewportLayer = nil
+        contentLayer = nil
         titleLayer = nil
         subtitleLayer = nil
         entryLayers = []
     }
 
     func mouseMoved(to point: CGPoint, modifierFlags: NSEvent.ModifierFlags) {
+        guard !isPressingEntry else { return }
         let route = route(at: point)
         if route != highlightedRoute {
             highlightedRoute = route
@@ -474,11 +518,53 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     }
 
     func mouseDown(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags, clickCount: Int) {
+        guard let rootLayer, let viewportLayer else { return }
+        let viewportPoint = rootLayer.convert(point, to: viewportLayer)
+        if scrollbarController?.handleMouseDown(at: viewportPoint) == true {
+            highlightedRoute = nil
+            isPressingEntry = false
+            updateColors()
+            return
+        }
+
         highlightedRoute = route(at: point)
+        isPressingEntry = highlightedRoute != nil
         updateColors()
     }
 
+    func mouseDragged(to point: CGPoint, modifierFlags: NSEvent.ModifierFlags) {
+        guard let rootLayer, let viewportLayer else { return }
+        let viewportPoint = rootLayer.convert(point, to: viewportLayer)
+        if scrollbarController?.handleMouseDragged(to: viewportPoint) == true {
+            highlightedRoute = nil
+            isPressingEntry = false
+            updateColors()
+            return
+        }
+
+        guard isPressingEntry else { return }
+        let route = route(at: point)
+        if route != highlightedRoute {
+            highlightedRoute = route
+            updateColors()
+        }
+    }
+
     func mouseUp(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags) {
+        if let rootLayer, let viewportLayer {
+            _ = scrollbarController?.handleMouseUp(at: rootLayer.convert(point, to: viewportLayer))
+        }
+
+        defer {
+            isPressingEntry = false
+        }
+
+        guard isPressingEntry else {
+            highlightedRoute = route(at: point)
+            updateColors()
+            return
+        }
+
         guard let route = route(at: point) else {
             highlightedRoute = nil
             updateColors()
@@ -487,15 +573,35 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         selectRoute(route)
     }
 
+    func scrollWheel(delta: CGPoint,
+                     at point: CGPoint,
+                     modifierFlags: NSEvent.ModifierFlags,
+                     phase: NSEvent.Phase,
+                     momentumPhase: NSEvent.Phase,
+                     isMomentum: Bool,
+                     isPrecise: Bool) {
+        let multiplier: CGFloat = isPrecise ? 1.0 : rowHeight
+        let adjustedDeltaY = delta.y * multiplier
+        guard adjustedDeltaY != 0 else { return }
+
+        scrollbarController?.cancelAnimation()
+        setScrollOffset(scrollOffset - adjustedDeltaY)
+        let route = route(at: point)
+        if route != highlightedRoute {
+            highlightedRoute = route
+            updateColors()
+        }
+    }
+
     func accessibilitySnapshotData() -> Data? {
-        guard let rootLayer, let viewportLayer else {
+        guard let rootLayer, let contentLayer else {
             return OuterframeAccessibilitySnapshot.notImplementedSnapshot().serializedData()
         }
 
         let children = entryLayers.enumerated().map { index, entry in
             OuterframeAccessibilityNode(identifier: UInt32(index + 1),
                                     role: .button,
-                                    frame: viewportLayer.convert(entry.containerLayer.frame, to: rootLayer),
+                                    frame: contentLayer.convert(entry.containerLayer.frame, to: rootLayer),
                                     label: entry.titleLayer.string as? String,
                                     hint: entry.descriptionLayer.string as? String)
         }
@@ -520,7 +626,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     }
 
     private func layout() {
-        guard let rootLayer, let viewportLayer, let titleLayer, let subtitleLayer else { return }
+        guard let rootLayer, let viewportLayer, let contentLayer, let titleLayer, let subtitleLayer else { return }
 
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -531,8 +637,6 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         let contentWidth = min(max(currentSize.width - 48, 280), 760)
         let contentX = max((currentSize.width - contentWidth) * 0.5, 24)
         let top: CGFloat = 56
-        let rowHeight: CGFloat = 78
-        let rowGap: CGFloat = 12
 
         titleLayer.frame = CGRect(x: contentX,
                                   y: top,
@@ -564,7 +668,16 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
             rowY += rowHeight + rowGap
         }
 
+        let contentHeight = max(rowY - rowGap + bottomPadding, currentSize.height)
+        contentLayer.frame = CGRect(x: 0,
+                                    y: -scrollOffset,
+                                    width: currentSize.width,
+                                    height: contentHeight)
+        scrollOffset = min(max(scrollOffset, 0), maxScrollOffsetValue())
+        contentLayer.frame.origin.y = -scrollOffset
+
         CATransaction.commit()
+        updateScrollbarLayout()
     }
 
     private func updateColors() {
@@ -591,10 +704,56 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     }
 
     private func route(at point: CGPoint) -> OuterframeCookbookHandler.Route? {
-        guard let rootLayer, let viewportLayer else {
+        guard let rootLayer, let contentLayer else {
             return nil
         }
-        let viewportPoint = rootLayer.convert(point, to: viewportLayer)
-        return entryLayers.first { $0.containerLayer.frame.contains(viewportPoint) }?.route
+        let contentPoint = rootLayer.convert(point, to: contentLayer)
+        return entryLayers.first { $0.containerLayer.frame.contains(contentPoint) }?.route
+    }
+
+    private func setScrollOffset(_ value: CGFloat) {
+        let clamped = min(max(value, 0), maxScrollOffsetValue())
+        if abs(clamped - scrollOffset) < 0.0001 {
+            scrollOffset = clamped
+            updateScrollbarLayout()
+            return
+        }
+
+        scrollOffset = clamped
+        applyScrollOffset()
+        appConnection.notifyAccessibilityTreeChanged(.layoutChanged)
+    }
+
+    private func applyScrollOffset() {
+        guard let contentLayer else { return }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        contentLayer.frame.origin.y = -scrollOffset
+        CATransaction.commit()
+        updateScrollbarLayout()
+    }
+
+    private func maxScrollOffsetValue() -> CGFloat {
+        guard let viewportLayer, let contentLayer else { return 0 }
+        return max(contentLayer.bounds.height - viewportLayer.bounds.height, 0)
+    }
+
+    private func updateScrollbarLayout() {
+        guard let metrics = makeScrollbarMetrics() else { return }
+        scrollbarController?.updateLayout(metrics: metrics)
+    }
+
+    private func makeScrollbarMetrics() -> ScrollbarController<CookbookTableOfContentsContentController>.Metrics? {
+        guard let viewportLayer, let contentLayer else { return nil }
+        return ScrollbarController.Metrics(viewportSize: viewportLayer.bounds.size,
+                                           contentHeight: contentLayer.bounds.height,
+                                           scrollOffset: scrollOffset)
+    }
+}
+
+extension CookbookTableOfContentsContentController: ScrollbarControllerDelegate {
+    func scrollbarDidChangeScrollOffset(_ offset: CGFloat) {
+        setScrollOffset(offset)
     }
 }

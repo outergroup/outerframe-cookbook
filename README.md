@@ -53,6 +53,7 @@ http://127.0.0.1:8025/cookbook.outer#manual_scroll
 http://127.0.0.1:8025/cookbook.outer#nested_scroll
 http://127.0.0.1:8025/cookbook.outer#timeline_range
 http://127.0.0.1:8025/cookbook.outer#giant_page
+http://127.0.0.1:8025/cookbook.outer#n_cube
 ```
 
 ## Deploying to a static server
