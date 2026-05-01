@@ -52,6 +52,11 @@ final class OuterframeHost: SocketToBrowserDelegate {
     /// The URL where the plugin bundle was downloaded from
     private var _bundleUrl: String?
 
+    private var _currentHistoryEntryID: UUID?
+    private var _historyLength: UInt32 = 0
+    private var _canGoBack = false
+    private var _canGoForward = false
+
     // Display link callback management
     private var displayLinkCallbacks: [UUID: @MainActor @Sendable (CFTimeInterval) -> Void] = [:]
     private var pendingDisplayLinkCallbacks: [UUID: @MainActor @Sendable (CFTimeInterval) -> Void] = [:]
@@ -118,6 +123,21 @@ final class OuterframeHost: SocketToBrowserDelegate {
         case .accessibilitySnapshotRequest(let requestId):
             handleAccessibilitySnapshotRequest(requestId: requestId)
             return
+
+        case .initializeContent(let arguments):
+            _currentHistoryEntryID = arguments.historyEntryID
+
+        case .historyEntryAccepted(let entryID, let url),
+             .historyTraversal(let entryID, let url):
+            _currentHistoryEntryID = entryID
+            _url = url
+
+        case .historyContextUpdate(let currentEntryID, let url, let length, let canGoBack, let canGoForward):
+            _currentHistoryEntryID = currentEntryID
+            _url = url
+            _historyLength = length
+            _canGoBack = canGoBack
+            _canGoForward = canGoForward
 
         default:
             break
@@ -313,6 +333,44 @@ final class OuterframeHost: SocketToBrowserDelegate {
         }
     }
 
+    @discardableResult
+    func pushHistoryEntry(url: URL?) -> UUID {
+        let entryID = UUID()
+        Task {
+            try? await socket.send(ContentToBrowserMessage.historyPushEntry(
+                entryID: entryID,
+                url: url?.absoluteString
+            ).encode())
+        }
+        return entryID
+    }
+
+    @discardableResult
+    func replaceHistoryEntry(url: URL?) -> UUID {
+        let entryID = UUID()
+        Task {
+            try? await socket.send(ContentToBrowserMessage.historyReplaceEntry(
+                entryID: entryID,
+                url: url?.absoluteString
+            ).encode())
+        }
+        return entryID
+    }
+
+    func goInHistory(by delta: Int32) {
+        Task {
+            try? await socket.send(ContentToBrowserMessage.historyGo(delta: delta).encode())
+        }
+    }
+
+    func goBackInHistory() {
+        goInHistory(by: -1)
+    }
+
+    func goForwardInHistory() {
+        goInHistory(by: 1)
+    }
+
     func showContextMenu(for attributedText: NSAttributedString, at location: CGPoint) {
         guard let data = try? attributedText.data(from: NSRange(location: 0, length: attributedText.length),
                                                   documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]) else {
@@ -403,6 +461,22 @@ final class OuterframeHost: SocketToBrowserDelegate {
     func pluginBundleURL() -> URL? {
         guard let urlString = _bundleUrl else { return nil }
         return URL(string: urlString)
+    }
+
+    func currentHistoryEntryID() -> UUID? {
+        _currentHistoryEntryID
+    }
+
+    func historyLength() -> UInt32 {
+        _historyLength
+    }
+
+    func canGoBackInHistory() -> Bool {
+        _canGoBack
+    }
+
+    func canGoForwardInHistory() -> Bool {
+        _canGoForward
     }
 
     // MARK: - Network Proxy (stored separately, set by host before passing to plugin)

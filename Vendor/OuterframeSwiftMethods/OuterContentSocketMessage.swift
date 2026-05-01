@@ -21,6 +21,7 @@ struct InitializeContentArguments {
     var url: String?
     var bundleUrl: String?
     var windowIsActive: Bool?
+    var historyEntryID: UUID?
 
     init(data: Data? = nil,
          contentWidth: CGFloat? = nil,
@@ -29,7 +30,8 @@ struct InitializeContentArguments {
          proxy: InitializeContentProxy? = nil,
          url: String? = nil,
          bundleUrl: String? = nil,
-         windowIsActive: Bool? = nil) {
+         windowIsActive: Bool? = nil,
+         historyEntryID: UUID? = nil) {
         self.data = data
         self.contentWidth = contentWidth
         self.contentHeight = contentHeight
@@ -38,6 +40,7 @@ struct InitializeContentArguments {
         self.url = url
         self.bundleUrl = bundleUrl
         self.windowIsActive = windowIsActive
+        self.historyEntryID = historyEntryID
     }
 }
 
@@ -50,6 +53,7 @@ fileprivate enum InitArgKind: UInt8 {
     case url = 6
     case bundleUrl = 7
     case windowIsActive = 8
+    case historyEntryID = 9
 }
 
 /// Messages from Browser to Content on the content socket
@@ -58,7 +62,7 @@ enum BrowserToContentMessage {
     case displayLinkFired(frameNumber: UInt64, targetTimestamp: Double)
     case displayLinkCallbackRegistered(callbackId: UUID, browserCallbackId: UUID)
     case resizeContent(width: CGFloat, height: CGFloat)
-    case mouseEvent(kind: OuterContentMouseEventKind,
+    case mouseEvent(kind: OuterframeContentMouseEventKind,
                     x: Float32,
                     y: Float32,
                     modifierFlags: UInt64,
@@ -111,6 +115,10 @@ enum BrowserToContentMessage {
     case copySelectedPasteboardRequest(requestId: UUID)
     case pasteboardContentDelivered(items: [OuterContentPasteboardItem])
     case accessibilitySnapshotRequest(requestId: UUID)
+    case historyEntryAccepted(entryID: UUID, url: String)
+    case historyEntryRejected(entryID: UUID, errorMessage: String)
+    case historyTraversal(entryID: UUID, url: String)
+    case historyContextUpdate(currentEntryID: UUID, url: String, length: UInt32, canGoBack: Bool, canGoForward: Bool)
     case shutdown
 
     func encode() throws -> Data {
@@ -179,6 +187,12 @@ enum BrowserToContentMessage {
                 var argPayload = Data()
                 argPayload.append(uint8: windowIsActive ? 1 : 0)
                 encodedArguments.append((kind: .windowIsActive, payload: argPayload))
+            }
+
+            if let historyEntryID = arguments.historyEntryID {
+                var argPayload = Data()
+                argPayload.append(uuid: historyEntryID)
+                encodedArguments.append((kind: .historyEntryID, payload: argPayload))
             }
 
             var payload = Data()
@@ -379,6 +393,33 @@ enum BrowserToContentMessage {
             payload.append(uuid: requestId)
             return makeBrowserToContentFrame(type: .accessibilitySnapshotRequest, payload: payload)
 
+        case .historyEntryAccepted(let entryID, let url):
+            var payload = Data()
+            payload.append(uuid: entryID)
+            try payload.append(lengthPrefixedUTF8_32: url)
+            return makeBrowserToContentFrame(type: .historyEntryAccepted, payload: payload)
+
+        case .historyEntryRejected(let entryID, let errorMessage):
+            var payload = Data()
+            payload.append(uuid: entryID)
+            try payload.append(lengthPrefixedUTF8_32: errorMessage)
+            return makeBrowserToContentFrame(type: .historyEntryRejected, payload: payload)
+
+        case .historyTraversal(let entryID, let url):
+            var payload = Data()
+            payload.append(uuid: entryID)
+            try payload.append(lengthPrefixedUTF8_32: url)
+            return makeBrowserToContentFrame(type: .historyTraversal, payload: payload)
+
+        case .historyContextUpdate(let currentEntryID, let url, let length, let canGoBack, let canGoForward):
+            var payload = Data()
+            payload.append(uuid: currentEntryID)
+            try payload.append(lengthPrefixedUTF8_32: url)
+            payload.append(uint32: length)
+            payload.append(uint8: canGoBack ? 1 : 0)
+            payload.append(uint8: canGoForward ? 1 : 0)
+            return makeBrowserToContentFrame(type: .historyContextUpdate, payload: payload)
+
         case .shutdown:
             return makeBrowserToContentFrame(type: .shutdown, payload: Data())
         }
@@ -386,7 +427,7 @@ enum BrowserToContentMessage {
 
     static func decode(typeRaw: UInt8, payload: Data) throws -> BrowserToContentMessage {
         guard let type = BrowserToContentMessageKind(rawValue: typeRaw) else {
-            throw OuterContentSocketMessageError.unknownType(typeRaw)
+            throw OuterframeContentSocketMessageError.unknownType(typeRaw)
         }
 
         var cursor = DataCursor(payload)
@@ -394,7 +435,7 @@ enum BrowserToContentMessage {
         switch type {
         case .initializeContent:
             guard let argCount = cursor.readUInt16() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
 
             var arguments = InitializeContentArguments()
@@ -404,7 +445,7 @@ enum BrowserToContentMessage {
             for _ in 0..<argCount {
                 guard let kindRaw = cursor.readUInt8(),
                       let argData = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
 
                 guard let kind = InitArgKind(rawValue: kindRaw) else {
@@ -416,14 +457,14 @@ enum BrowserToContentMessage {
                 switch kind {
                 case .data:
                     guard let data = argCursor.readData32() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.data = data
 
                 case .contentSize:
                     guard let width = argCursor.readFloat64(),
                           let height = argCursor.readFloat64() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.contentWidth = width
                     arguments.contentHeight = height
@@ -431,14 +472,14 @@ enum BrowserToContentMessage {
                 case .appearance:
                     guard let appearanceData = argCursor.readData32(),
                           let decoded = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSAppearance.self, from: appearanceData) else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.appearance = decoded
 
                 case .proxy:
                     guard let proxyHost = argCursor.readString32(),
                           let proxyPort = argCursor.readUInt16() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.proxy = InitializeContentProxy(host: proxyHost,
                                                              port: proxyPort,
@@ -447,11 +488,11 @@ enum BrowserToContentMessage {
 
                 case .proxyAuth:
                     guard let usernameIsPresent = argCursor.readUInt8() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     if usernameIsPresent != 0 {
                         guard let username = argCursor.readString32() else {
-                            throw OuterContentSocketMessageError.truncatedPayload
+                            throw OuterframeContentSocketMessageError.truncatedPayload
                         }
                         proxyUsername = username
                     } else {
@@ -459,11 +500,11 @@ enum BrowserToContentMessage {
                     }
 
                     guard let passwordIsPresent = argCursor.readUInt8() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     if passwordIsPresent != 0 {
                         guard let password = argCursor.readString32() else {
-                            throw OuterContentSocketMessageError.truncatedPayload
+                            throw OuterframeContentSocketMessageError.truncatedPayload
                         }
                         proxyPassword = password
                     } else {
@@ -478,21 +519,27 @@ enum BrowserToContentMessage {
 
                 case .url:
                     guard let url = argCursor.readString32() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.url = url
 
                 case .bundleUrl:
                     guard let bundleUrl = argCursor.readString32() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.bundleUrl = bundleUrl
 
                 case .windowIsActive:
                     guard let windowIsActiveRaw = argCursor.readUInt8() else {
-                        throw OuterContentSocketMessageError.truncatedPayload
+                        throw OuterframeContentSocketMessageError.truncatedPayload
                     }
                     arguments.windowIsActive = windowIsActiveRaw != 0
+
+                case .historyEntryID:
+                    guard let historyEntryID = argCursor.readUUID() else {
+                        throw OuterframeContentSocketMessageError.truncatedPayload
+                    }
+                    arguments.historyEntryID = historyEntryID
                 }
             }
 
@@ -501,7 +548,7 @@ enum BrowserToContentMessage {
         case .displayLinkFired:
             guard let frameNumber = cursor.readUInt64(),
                   let timestampBits = cursor.readUInt64() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             let timestamp = Double(bitPattern: timestampBits)
             return .displayLinkFired(frameNumber: frameNumber, targetTimestamp: timestamp)
@@ -509,25 +556,25 @@ enum BrowserToContentMessage {
         case .displayLinkCallbackRegistered:
             guard let callbackId = cursor.readUUID(),
                   let browserCallbackId = cursor.readUUID() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .displayLinkCallbackRegistered(callbackId: callbackId, browserCallbackId: browserCallbackId)
 
         case .resizeContent:
             guard let width = cursor.readFloat64(),
                   let height = cursor.readFloat64() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .resizeContent(width: width, height: height)
 
         case .mouseEvent:
             guard let kindRaw = cursor.readUInt8(),
-                  let kind = OuterContentMouseEventKind(rawValue: kindRaw),
+                  let kind = OuterframeContentMouseEventKind(rawValue: kindRaw),
                   let x = cursor.readFloat32(),
                   let y = cursor.readFloat32(),
                   let modifierFlags = cursor.readUInt64(),
                   let clickCount = cursor.readUInt32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .mouseEvent(kind: kind, x: x, y: y, modifierFlags: modifierFlags, clickCount: clickCount)
 
@@ -541,7 +588,7 @@ enum BrowserToContentMessage {
                   let momentumPhaseRaw = cursor.readUInt32(),
                   let isMomentumRaw = cursor.readUInt8(),
                   let isPreciseRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .scrollWheelEvent(x: x, y: y, deltaX: deltaX, deltaY: deltaY,
                                      modifierFlags: modifierFlags, phase: phaseRaw,
@@ -554,7 +601,7 @@ enum BrowserToContentMessage {
                   let charactersIgnoringModifiers = cursor.readString32(),
                   let modifierFlags = cursor.readUInt64(),
                   let repeatRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .keyDown(keyCode: keyCode, characters: characters,
                             charactersIgnoringModifiers: charactersIgnoringModifiers,
@@ -566,7 +613,7 @@ enum BrowserToContentMessage {
                   let charactersIgnoringModifiers = cursor.readString32(),
                   let modifierFlags = cursor.readUInt64(),
                   let repeatRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .keyUp(keyCode: keyCode, characters: characters,
                           charactersIgnoringModifiers: charactersIgnoringModifiers,
@@ -579,7 +626,7 @@ enum BrowserToContentMessage {
                   let y = cursor.readFloat32(),
                   let scrollX = cursor.readFloat32(),
                   let scrollY = cursor.readFloat32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .magnification(surfaceId: surfaceId, magnification: magnification,
                                   x: x, y: y, scrollX: scrollX, scrollY: scrollY)
@@ -591,7 +638,7 @@ enum BrowserToContentMessage {
                   let y = cursor.readFloat32(),
                   let scrollX = cursor.readFloat32(),
                   let scrollY = cursor.readFloat32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .magnificationEnded(surfaceId: surfaceId, magnification: magnification,
                                        x: x, y: y, scrollX: scrollX, scrollY: scrollY)
@@ -599,7 +646,7 @@ enum BrowserToContentMessage {
         case .quickLook:
             guard let x = cursor.readFloat32(),
                   let y = cursor.readFloat32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .quickLook(x: x, y: y)
 
@@ -609,25 +656,25 @@ enum BrowserToContentMessage {
                   let height = cursor.readUInt32(),
                   let successRaw = cursor.readUInt8(),
                   let hasImageRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
 
             var imageData: Data? = nil
             if hasImageRaw != 0 {
                 guard let data = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 imageData = data
             }
 
             guard let hasErrorMessageRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
 
             var errorMessage: String? = nil
             if hasErrorMessageRaw != 0 {
                 guard let message = cursor.readString32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 errorMessage = message
             }
@@ -641,7 +688,7 @@ enum BrowserToContentMessage {
                   let hasRangeRaw = cursor.readUInt8(),
                   let replacementLocation = cursor.readUInt64(),
                   let replacementLength = cursor.readUInt64() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .textInput(text: text, hasReplacementRange: hasRangeRaw != 0,
                               replacementLocation: replacementLocation,
@@ -654,7 +701,7 @@ enum BrowserToContentMessage {
                   let hasRangeRaw = cursor.readUInt8(),
                   let replacementLocation = cursor.readUInt64(),
                   let replacementLength = cursor.readUInt64() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .setMarkedText(text: text, selectedLocation: selectedLocation,
                                   selectedLength: selectedLength,
@@ -668,13 +715,13 @@ enum BrowserToContentMessage {
         case .textInputFocus:
             guard let fieldId = cursor.readString32(),
                   let hasFocusRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .textInputFocus(fieldId: fieldId, hasFocus: hasFocusRaw != 0)
 
         case .textCommand:
             guard let command = cursor.readString32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .textCommand(command: command)
 
@@ -682,14 +729,14 @@ enum BrowserToContentMessage {
             guard let fieldId = cursor.readString32(),
                   let position = cursor.readUInt64(),
                   let modifySelectionRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .setCursorPosition(fieldId: fieldId, position: position,
                                       modifySelection: modifySelectionRaw != 0)
 
         case .systemAppearanceUpdate:
             guard let appearanceData = cursor.readData32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             let appearance = (try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSAppearance.self, from: appearanceData))
                 ?? NSAppearance.currentDrawing()
@@ -697,32 +744,32 @@ enum BrowserToContentMessage {
 
         case .windowActiveUpdate:
             guard let raw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .windowActiveUpdate(isActive: raw != 0)
 
         case .viewFocusChanged:
             guard let raw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .viewFocusChanged(isFocused: raw != 0)
 
         case .copySelectedPasteboardRequest:
             guard let requestId = cursor.readUUID() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .copySelectedPasteboardRequest(requestId: requestId)
 
         case .pasteboardContentDelivered:
             guard let count = cursor.readUInt16() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var items: [OuterContentPasteboardItem] = []
             items.reserveCapacity(Int(count))
             for _ in 0..<count {
                 guard let identifier = cursor.readString32(),
                       let data = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 items.append(OuterContentPasteboardItem(typeIdentifier: identifier, data: data))
             }
@@ -730,9 +777,44 @@ enum BrowserToContentMessage {
 
         case .accessibilitySnapshotRequest:
             guard let requestId = cursor.readUUID() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .accessibilitySnapshotRequest(requestId: requestId)
+
+        case .historyEntryAccepted:
+            guard let entryID = cursor.readUUID(),
+                  let url = cursor.readString32() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            return .historyEntryAccepted(entryID: entryID, url: url)
+
+        case .historyEntryRejected:
+            guard let entryID = cursor.readUUID(),
+                  let errorMessage = cursor.readString32() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            return .historyEntryRejected(entryID: entryID, errorMessage: errorMessage)
+
+        case .historyTraversal:
+            guard let entryID = cursor.readUUID(),
+                  let url = cursor.readString32() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            return .historyTraversal(entryID: entryID, url: url)
+
+        case .historyContextUpdate:
+            guard let currentEntryID = cursor.readUUID(),
+                  let url = cursor.readString32(),
+                  let length = cursor.readUInt32(),
+                  let canGoBackRaw = cursor.readUInt8(),
+                  let canGoForwardRaw = cursor.readUInt8() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            return .historyContextUpdate(currentEntryID: currentEntryID,
+                                         url: url,
+                                         length: length,
+                                         canGoBack: canGoBackRaw != 0,
+                                         canGoForward: canGoForwardRaw != 0)
 
         case .shutdown:
             return .shutdown
@@ -766,6 +848,9 @@ enum ContentToBrowserMessage {
     case accessibilitySnapshotResponse(requestId: UUID, snapshotData: Data?)
     case accessibilityTreeChanged(notificationMask: UInt8)
     case hapticFeedback(style: UInt8)
+    case historyPushEntry(entryID: UUID, url: String?)
+    case historyReplaceEntry(entryID: UUID, url: String?)
+    case historyGo(delta: Int32)
 
     func encode() throws -> Data {
         switch self {
@@ -927,12 +1012,39 @@ enum ContentToBrowserMessage {
             var payload = Data(capacity: 1)
             payload.append(uint8: style)
             return makeContentToBrowserFrame(type: .hapticFeedback, payload: payload)
+
+        case .historyPushEntry(let entryID, let url):
+            var payload = Data()
+            payload.append(uuid: entryID)
+            if let url {
+                payload.append(uint8: 1)
+                try payload.append(lengthPrefixedUTF8_32: url)
+            } else {
+                payload.append(uint8: 0)
+            }
+            return makeContentToBrowserFrame(type: .historyPushEntry, payload: payload)
+
+        case .historyReplaceEntry(let entryID, let url):
+            var payload = Data()
+            payload.append(uuid: entryID)
+            if let url {
+                payload.append(uint8: 1)
+                try payload.append(lengthPrefixedUTF8_32: url)
+            } else {
+                payload.append(uint8: 0)
+            }
+            return makeContentToBrowserFrame(type: .historyReplaceEntry, payload: payload)
+
+        case .historyGo(let delta):
+            var payload = Data(capacity: 4)
+            payload.append(int32: delta)
+            return makeContentToBrowserFrame(type: .historyGo, payload: payload)
         }
     }
 
     static func decode(typeRaw: UInt8, payload: Data) throws -> ContentToBrowserMessage {
         guard let type = ContentToBrowserMessageKind(rawValue: typeRaw) else {
-            throw OuterContentSocketMessageError.unknownType(typeRaw)
+            throw OuterframeContentSocketMessageError.unknownType(typeRaw)
         }
 
         var cursor = DataCursor(payload)
@@ -940,25 +1052,25 @@ enum ContentToBrowserMessage {
         switch type {
         case .startDisplayLink:
             guard let callbackId = cursor.readUUID() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .startDisplayLink(callbackId: callbackId)
 
         case .stopDisplayLink:
             guard let browserCallbackId = cursor.readUUID() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .stopDisplayLink(browserCallbackId: browserCallbackId)
 
         case .cursorUpdate:
             guard let cursorType = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .cursorUpdate(cursorType: cursorType)
 
         case .inputModeUpdate:
             guard let inputMode = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .inputModeUpdate(inputMode: inputMode)
 
@@ -966,7 +1078,7 @@ enum ContentToBrowserMessage {
             guard let locationX = cursor.readFloat32(),
                   let locationY = cursor.readFloat32(),
                   let attributedTextData = cursor.readData32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .showContextMenu(attributedTextData: attributedTextData,
                                     locationX: locationX, locationY: locationY)
@@ -975,7 +1087,7 @@ enum ContentToBrowserMessage {
             guard let locationX = cursor.readFloat32(),
                   let locationY = cursor.readFloat32(),
                   let attributedTextData = cursor.readData32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .showDefinition(attributedTextData: attributedTextData,
                                    locationX: locationX, locationY: locationY)
@@ -990,7 +1102,7 @@ enum ContentToBrowserMessage {
                   let tintGreen = cursor.readFloat32(),
                   let tintBlue = cursor.readFloat32(),
                   let tintAlpha = cursor.readFloat32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .getImageWithSystemSymbolName(requestId: requestId, symbolName: symbolName,
                                     pointSize: pointSize, weight: weight, scale: scale,
@@ -999,7 +1111,7 @@ enum ContentToBrowserMessage {
 
         case .textCursorUpdate:
             guard let cursorCount = cursor.readUInt32() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var entries: [OuterContentTextCursorSnapshot] = []
             entries.reserveCapacity(Int(cursorCount))
@@ -1010,7 +1122,7 @@ enum ContentToBrowserMessage {
                       let rectWidth = cursor.readFloat32(),
                       let rectHeight = cursor.readFloat32(),
                       let visibleRaw = cursor.readUInt8() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 entries.append(OuterContentTextCursorSnapshot(fieldId: fieldId,
                                                               rectX: rectX, rectY: rectY,
@@ -1021,17 +1133,17 @@ enum ContentToBrowserMessage {
 
         case .pageMetadataUpdate:
             guard let hasTitleRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var title: String? = nil
             if hasTitleRaw != 0 {
                 guard let value = cursor.readString32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 title = value
             }
             guard let hasIconRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var iconData: Data? = nil
             var iconWidth: UInt32 = 0
@@ -1040,7 +1152,7 @@ enum ContentToBrowserMessage {
                 guard let width = cursor.readUInt32(),
                       let height = cursor.readUInt32(),
                       let data = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 iconWidth = width
                 iconHeight = height
@@ -1051,17 +1163,17 @@ enum ContentToBrowserMessage {
 
         case .startPageMetadataUpdate:
             guard let hasTitleRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var title: String? = nil
             if hasTitleRaw != 0 {
                 guard let value = cursor.readString32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 title = value
             }
             guard let hasIconRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var iconData: Data? = nil
             var iconWidth: UInt32 = 0
@@ -1070,7 +1182,7 @@ enum ContentToBrowserMessage {
                 guard let width = cursor.readUInt32(),
                       let height = cursor.readUInt32(),
                       let data = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 iconWidth = width
                 iconHeight = height
@@ -1082,14 +1194,14 @@ enum ContentToBrowserMessage {
         case .copySelectedPasteboardResponse:
             guard let requestId = cursor.readUUID(),
                   let count = cursor.readUInt16() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var items: [OuterContentPasteboardItem] = []
             items.reserveCapacity(Int(count))
             for _ in 0..<count {
                 guard let identifier = cursor.readString32(),
                       let data = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 items.append(OuterContentPasteboardItem(typeIdentifier: identifier, data: data))
             }
@@ -1099,13 +1211,13 @@ enum ContentToBrowserMessage {
             guard let canCopyRaw = cursor.readUInt8(),
                   let canCutRaw = cursor.readUInt8(),
                   let count = cursor.readUInt16() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var identifiers: [String] = []
             identifiers.reserveCapacity(Int(count))
             for _ in 0..<count {
                 guard let identifier = cursor.readString32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 identifiers.append(identifier)
             }
@@ -1116,12 +1228,12 @@ enum ContentToBrowserMessage {
         case .accessibilitySnapshotResponse:
             guard let requestId = cursor.readUUID(),
                   let hasData = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             let snapshotData: Data?
             if hasData != 0 {
                 guard let payload = cursor.readData32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 snapshotData = payload
             } else {
@@ -1131,39 +1243,61 @@ enum ContentToBrowserMessage {
 
         case .accessibilityTreeChanged:
             guard let mask = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .accessibilityTreeChanged(notificationMask: mask)
 
         case .hapticFeedback:
             guard let style = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             return .hapticFeedback(style: style)
+
+        case .historyPushEntry:
+            guard let entryID = cursor.readUUID(),
+                  let hasURLRaw = cursor.readUInt8() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            let url = try readOptionalHistoryURL(hasURLRaw: hasURLRaw, cursor: &cursor)
+            return .historyPushEntry(entryID: entryID, url: url)
+
+        case .historyReplaceEntry:
+            guard let entryID = cursor.readUUID(),
+                  let hasURLRaw = cursor.readUInt8() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            let url = try readOptionalHistoryURL(hasURLRaw: hasURLRaw, cursor: &cursor)
+            return .historyReplaceEntry(entryID: entryID, url: url)
+
+        case .historyGo:
+            guard let delta = cursor.readInt32() else {
+                throw OuterframeContentSocketMessageError.truncatedPayload
+            }
+            return .historyGo(delta: delta)
 
         case .openNewWindow:
             guard let url = cursor.readString32(),
                   let hasDisplayRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             let displayString: String?
             if hasDisplayRaw != 0 {
                 guard let value = cursor.readString32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 displayString = value
             } else {
                 displayString = nil
             }
             guard let hasSizeRaw = cursor.readUInt8() else {
-                throw OuterContentSocketMessageError.truncatedPayload
+                throw OuterframeContentSocketMessageError.truncatedPayload
             }
             var widthValue: Float32? = nil
             var heightValue: Float32? = nil
             if hasSizeRaw != 0 {
                 guard let width = cursor.readFloat32(),
                       let height = cursor.readFloat32() else {
-                    throw OuterContentSocketMessageError.truncatedPayload
+                    throw OuterframeContentSocketMessageError.truncatedPayload
                 }
                 widthValue = width
                 heightValue = height
@@ -1195,7 +1329,7 @@ struct OuterContentPasteboardItem: Sendable {
     }
 }
 
-enum OuterContentMouseEventKind: UInt8 {
+enum OuterframeContentMouseEventKind: UInt8 {
     case mouseDown = 1
     case mouseDragged = 2
     case mouseUp = 3
@@ -1204,7 +1338,7 @@ enum OuterContentMouseEventKind: UInt8 {
     case rightMouseUp = 6
 }
 
-enum OuterContentSocketMessageError: Error {
+enum OuterframeContentSocketMessageError: Error {
     case unknownType(UInt8)
     case truncatedPayload
     case encodingFailure(String)
@@ -1238,6 +1372,10 @@ private enum BrowserToContentMessageKind: UInt8 {
     case pasteboardContentDelivered = 45
     case accessibilitySnapshotRequest = 46
     case shutdown = 51
+    case historyEntryAccepted = 52
+    case historyEntryRejected = 53
+    case historyTraversal = 54
+    case historyContextUpdate = 55
 }
 
 private enum ContentToBrowserMessageKind: UInt8 {
@@ -1257,6 +1395,17 @@ private enum ContentToBrowserMessageKind: UInt8 {
     case accessibilitySnapshotResponse = 45
     case accessibilityTreeChanged = 46
     case hapticFeedback = 48
+    case historyPushEntry = 49
+    case historyReplaceEntry = 50
+    case historyGo = 51
+}
+
+private func readOptionalHistoryURL(hasURLRaw: UInt8, cursor: inout DataCursor) throws -> String? {
+    guard hasURLRaw != 0 else { return nil }
+    guard let url = cursor.readString32() else {
+        throw OuterframeContentSocketMessageError.truncatedPayload
+    }
+    return url
 }
 
 // MARK: - Frame Helpers
@@ -1292,6 +1441,11 @@ private struct DataCursor {
         let value = data[offset..<(offset + 4)].reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
         offset += 4
         return value
+    }
+
+    mutating func readInt32() -> Int32? {
+        guard let value = readUInt32() else { return nil }
+        return Int32(bitPattern: value)
     }
 
     mutating func readUInt16() -> UInt16? {
@@ -1393,14 +1547,14 @@ fileprivate extension Data {
 
     mutating func append(lengthPrefixedUTF8_32 string: String) throws {
         guard let data = string.data(using: .utf8) else {
-            throw OuterContentSocketMessageError.encodingFailure("Invalid UTF-8 string")
+            throw OuterframeContentSocketMessageError.encodingFailure("Invalid UTF-8 string")
         }
         try append(lengthPrefixedData32: data)
     }
 
     mutating func append(lengthPrefixedData32 data: Data) throws {
         guard data.count <= UInt32.max else {
-            throw OuterContentSocketMessageError.encodingFailure("Data too long")
+            throw OuterframeContentSocketMessageError.encodingFailure("Data too long")
         }
         append(uint32: UInt32(data.count))
         append(data)

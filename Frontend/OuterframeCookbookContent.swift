@@ -117,13 +117,35 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             }
         }
 
-        static func make(from identifier: String?) -> Route {
-            guard var slug = identifier, !slug.isEmpty else {
+        var recipeIdentifier: String? {
+            switch self {
+            case .tableOfContents:
+                return nil
+            case .manualScroll:
+                return "manual_scroll"
+            case .nestedScroll:
+                return "nested_scroll"
+            case .timelineRange:
+                return "timeline_range"
+            case .giantPageWithAnimations:
+                return "giant_page"
+            case .nDimensionalCubeShadow:
+                return "n_cube"
+            }
+        }
+
+        static func make(from url: URL?) -> Route {
+            guard let url,
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  let recipe = components.queryItems?.first(where: { $0.name == "recipe" })?.value else {
                 return .tableOfContents
             }
+            return make(fromRecipeIdentifier: recipe)
+        }
 
-            if slug.hasPrefix("!") {
-                slug.removeFirst()
+        private static func make(fromRecipeIdentifier identifier: String?) -> Route {
+            guard var slug = identifier, !slug.isEmpty else {
+                return .tableOfContents
             }
 
             slug = slug.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -162,6 +184,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
     private var currentSize = CGSize(width: 800, height: 600)
     private var initialData = Data()
     private var didRegisterLayer = false
+    private var routeByHistoryEntryID: [UUID: Route] = [:]
 
     init(outerframeHost: OuterframeHost, appConnection: OuterframeAppConnection) {
         self.outerframeHost = outerframeHost
@@ -190,11 +213,24 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             rootLayer = root
 
             registerRootLayerIfNeeded()
-            switchToRoute(Route.make(from: outerframeHost.pluginURL()?.fragment))
+            let initialRoute = Route.make(from: outerframeHost.pluginURL())
+            if let historyEntryID = arguments.historyEntryID {
+                routeByHistoryEntryID[historyEntryID] = initialRoute
+            }
+            switchToRoute(initialRoute)
             outerframeHost.updateStartPageMetadata(title: "Outerframe Cookbook",
                                                    iconPNGData: nil,
                                                    iconWidth: 0,
                                                    iconHeight: 0)
+
+        case .historyTraversal(let entryID, let urlString):
+            let route = routeByHistoryEntryID[entryID]
+                ?? Route.make(from: URL(string: urlString))
+            routeByHistoryEntryID[entryID] = route
+            switchToRoute(route)
+
+        case .historyEntryRejected(let entryID, _):
+            routeByHistoryEntryID.removeValue(forKey: entryID)
 
         case .resizeContent(let width, let height):
             currentSize = CGSize(width: width, height: height)
@@ -273,7 +309,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             controller = CookbookTableOfContentsContentController(appearance: resolvedAppearance,
                                                                   appConnection: outerframeHost,
                                                                   selectRoute: { [weak self] route in
-                                                                      self?.switchToRoute(route)
+                                                                      self?.navigateToRoute(route)
                                                                   })
         case .manualScroll:
             controller = ManualScrollViewContentController(appConnection: outerframeHost)
@@ -312,6 +348,28 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                                           iconWidth: 0,
                                           iconHeight: 0)
         outerframeHost.notifyAccessibilityTreeChanged(.layoutChanged)
+    }
+
+    private func navigateToRoute(_ route: Route) {
+        guard route != currentRoute else { return }
+        let entryID = outerframeHost.pushHistoryEntry(url: url(for: route))
+        routeByHistoryEntryID[entryID] = route
+        switchToRoute(route)
+    }
+
+    private func url(for route: Route) -> URL? {
+        guard let baseURL = outerframeHost.pluginURL(),
+              var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+
+        var queryItems = components.queryItems?.filter { $0.name != "recipe" } ?? []
+        if let recipeIdentifier = route.recipeIdentifier {
+            queryItems.append(URLQueryItem(name: "recipe", value: recipeIdentifier))
+        }
+        components.queryItems = queryItems.isEmpty ? nil : queryItems
+        components.fragment = nil
+        return components.url
     }
 
     private func cleanup() {
