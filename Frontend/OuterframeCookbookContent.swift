@@ -492,7 +492,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         let subtitle = makeTextLayer(font: .systemFont(ofSize: 15, weight: .regular),
                                      fontSize: 15,
                                      color: .secondaryLabelColor)
-        subtitle.string = "Pick a layer-backed outerframe example."
+        subtitle.string = "Pick a recipe:"
         content.addSublayer(subtitle)
 
         var layers: [EntryLayers] = []
@@ -571,7 +571,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         let route = route(at: point)
         if route != highlightedRoute {
             highlightedRoute = route
-            updateColors()
+            updateColors(disableActions: true)
         }
     }
 
@@ -581,13 +581,13 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         if scrollbarController?.handleMouseDown(at: viewportPoint) == true {
             highlightedRoute = nil
             isPressingEntry = false
-            updateColors()
+            updateColors(disableActions: true)
             return
         }
 
         highlightedRoute = route(at: point)
         isPressingEntry = highlightedRoute != nil
-        updateColors()
+        updateColors(disableActions: true)
     }
 
     func mouseDragged(to point: CGPoint, modifierFlags: NSEvent.ModifierFlags) {
@@ -596,7 +596,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         if scrollbarController?.handleMouseDragged(to: viewportPoint) == true {
             highlightedRoute = nil
             isPressingEntry = false
-            updateColors()
+            updateColors(disableActions: true)
             return
         }
 
@@ -604,7 +604,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         let route = route(at: point)
         if route != highlightedRoute {
             highlightedRoute = route
-            updateColors()
+            updateColors(disableActions: true)
         }
     }
 
@@ -619,13 +619,13 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
 
         guard isPressingEntry else {
             highlightedRoute = route(at: point)
-            updateColors()
+            updateColors(disableActions: true)
             return
         }
 
         guard let route = route(at: point) else {
             highlightedRoute = nil
-            updateColors()
+            updateColors(disableActions: true)
             return
         }
         selectRoute(route)
@@ -647,7 +647,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         let route = route(at: point)
         if route != highlightedRoute {
             highlightedRoute = route
-            updateColors()
+            updateColors(disableActions: true)
         }
     }
 
@@ -738,8 +738,13 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         updateScrollbarLayout()
     }
 
-    private func updateColors() {
+    private func updateColors(disableActions: Bool = false) {
         appearance.performAsCurrentDrawingAppearance {
+            if disableActions {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+            }
+
             rootLayer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
             titleLayer?.foregroundColor = NSColor.labelColor.cgColor
             subtitleLayer?.foregroundColor = NSColor.secondaryLabelColor.cgColor
@@ -757,6 +762,10 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
                 entry.arrowLayer.foregroundColor = isHighlighted ?
                     NSColor.controlAccentColor.cgColor :
                     NSColor.tertiaryLabelColor.cgColor
+            }
+
+            if disableActions {
+                CATransaction.commit()
             }
         }
     }
