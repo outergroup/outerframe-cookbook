@@ -1,13 +1,7 @@
-# OuterframeCookbook
+# Outerframe Cookbook
 
-This is a static-hosted outerframe cookbook app. The default page is a table of contents that switches between the included layer-backed examples.
+A cookbook of example [outerframe](https://github.com/outergroup/outerframe) content.
 
-It includes:
-
-- A small standalone Xcode project that builds `OuterframeCookbook.bundle`
-- Vendored outerframe host/runtime Swift files copied from `Top`
-- A Python script that generates the `.outer` descriptor
-- A Python script that serves the generated site locally with the right MIME type for `.outer`
 
 ## Build
 
@@ -46,15 +40,6 @@ Then open this URL in Outer Loop:
 http://127.0.0.1:8025/cookbook.outer
 ```
 
-Specific entries can also be loaded by fragment:
-
-```text
-http://127.0.0.1:8025/cookbook.outer#manual_scroll
-http://127.0.0.1:8025/cookbook.outer#nested_scroll
-http://127.0.0.1:8025/cookbook.outer#timeline_range
-http://127.0.0.1:8025/cookbook.outer#giant_page
-http://127.0.0.1:8025/cookbook.outer#n_cube
-```
 
 ## Deploying to a static server
 

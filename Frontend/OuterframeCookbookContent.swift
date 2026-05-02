@@ -23,6 +23,7 @@ protocol CookbookPageController: AnyObject {
     func mouseDown(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags, clickCount: Int)
     func mouseDragged(to point: CGPoint, modifierFlags: NSEvent.ModifierFlags)
     func mouseUp(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags)
+    func rightMouseDown(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags, clickCount: Int)
     func scrollWheel(delta: CGPoint,
                      at point: CGPoint,
                      modifierFlags: NSEvent.ModifierFlags,
@@ -31,6 +32,7 @@ protocol CookbookPageController: AnyObject {
                      isMomentum: Bool,
                      isPrecise: Bool)
     func accessibilitySnapshotData() -> Data?
+    func pasteboardItemsForCopy() -> [OuterContentPasteboardItem]
 }
 
 extension CookbookPageController {
@@ -38,6 +40,7 @@ extension CookbookPageController {
     func mouseDown(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags, clickCount: Int) {}
     func mouseDragged(to point: CGPoint, modifierFlags: NSEvent.ModifierFlags) {}
     func mouseUp(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags) {}
+    func rightMouseDown(at point: CGPoint, modifierFlags: NSEvent.ModifierFlags, clickCount: Int) {}
     func scrollWheel(delta: CGPoint,
                      at point: CGPoint,
                      modifierFlags: NSEvent.ModifierFlags,
@@ -47,6 +50,9 @@ extension CookbookPageController {
                      isPrecise: Bool) {}
     func accessibilitySnapshotData() -> Data? {
         OuterframeAccessibilitySnapshot.notImplementedSnapshot().serializedData()
+    }
+    func pasteboardItemsForCopy() -> [OuterContentPasteboardItem] {
+        []
     }
 }
 
@@ -77,6 +83,7 @@ final class CookbookScrollbarDelegate: ScrollbarControllerDelegate {
 fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDelegate {
     fileprivate enum Route: CaseIterable {
         case tableOfContents
+        case accessibleTextRegion
         case manualScroll
         case nestedScroll
         case timelineRange
@@ -87,6 +94,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             switch self {
             case .tableOfContents:
                 return "Outerframe Cookbook"
+            case .accessibleTextRegion:
+                return "Accessible Text Region"
             case .manualScroll:
                 return "Manual Scroll View"
             case .nestedScroll:
@@ -104,6 +113,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             switch self {
             case .tableOfContents:
                 return "Choose a cookbook entry."
+            case .accessibleTextRegion:
+                return "A TextKit 2 scrollable text region with selection, copy, and accessibility."
             case .manualScroll:
                 return "A manual layer-backed scroll view with a custom scrollbar."
             case .nestedScroll:
@@ -121,6 +132,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             switch self {
             case .tableOfContents:
                 return nil
+            case .accessibleTextRegion:
+                return "accessible_text"
             case .manualScroll:
                 return "manual_scroll"
             case .nestedScroll:
@@ -156,6 +169,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             slug = slug.replacingOccurrences(of: "-", with: "_").lowercased()
 
             switch slug {
+            case "accessible_text", "text", "textkit", "textkit2", "copyable_text":
+                return .accessibleTextRegion
             case "manual_scroll", "manual":
                 return .manualScroll
             case "nested_scroll", "nested":
@@ -255,7 +270,9 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                 currentController?.mouseDragged(to: point, modifierFlags: flags)
             case .mouseUp:
                 currentController?.mouseUp(at: point, modifierFlags: flags)
-            case .rightMouseDown, .rightMouseUp:
+            case .rightMouseDown:
+                currentController?.rightMouseDown(at: point, modifierFlags: flags, clickCount: Int(clickCount))
+            case .rightMouseUp:
                 break
             }
 
@@ -275,7 +292,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             switchToRoute(currentRoute)
 
         case .copySelectedPasteboardRequest(let requestId):
-            outerframeHost.sendCopySelectedPasteboardResponse(requestId: requestId, items: [])
+            outerframeHost.sendCopySelectedPasteboardResponse(requestId: requestId,
+                                                              items: currentController?.pasteboardItemsForCopy() ?? [])
 
         case .shutdown:
             cleanup()
@@ -311,6 +329,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                                                                   selectRoute: { [weak self] route in
                                                                       self?.navigateToRoute(route)
                                                                   })
+        case .accessibleTextRegion:
+            controller = AccessibleTextRegionContentController(appConnection: outerframeHost)
         case .manualScroll:
             controller = ManualScrollViewContentController(appConnection: outerframeHost)
         case .nestedScroll:
@@ -435,6 +455,9 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     private var isPressingEntry = false
 
     private let entries: [Entry] = [
+        Entry(route: .accessibleTextRegion,
+              title: OuterframeCookbookHandler.Route.accessibleTextRegion.pageTitle,
+              description: OuterframeCookbookHandler.Route.accessibleTextRegion.description),
         Entry(route: .manualScroll,
               title: OuterframeCookbookHandler.Route.manualScroll.pageTitle,
               description: OuterframeCookbookHandler.Route.manualScroll.description),
