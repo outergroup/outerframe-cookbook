@@ -20,8 +20,9 @@ def main() -> int:
         raise SystemExit("bundle URL is too long for the current .outer format")
 
     payload = bytearray()
+    payload.extend(b"OUTR")
     payload.append(0)
-    payload.extend(len(bundle_url).to_bytes(2, "big"))
+    payload.extend(len(bundle_url).to_bytes(2, "little"))
     payload.extend(bundle_url)
 
     if args.data_file:

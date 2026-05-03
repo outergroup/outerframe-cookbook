@@ -154,11 +154,11 @@ private final class TextKitDisplayLayer: CALayer {
                         textLayer: textLayer)
 
         scrollbarController = ScrollbarController<AccessibleTextRegionContentController>(appConnection: appConnection,
-                                                                                        viewportLayer: viewport,
-                                                                                        appearance: NSAppearance.currentDrawing(),
-                                                                                        width: scrollbarWidth,
-                                                                                        inset: scrollbarInset,
-                                                                                        scrollOffsetOrigin: .bottom)
+                                                                                         viewportLayer: viewport,
+                                                                                         appearance: NSAppearance.currentDrawing(),
+                                                                                         width: scrollbarWidth,
+                                                                                         inset: scrollbarInset,
+                                                                                         scrollOffsetOrigin: .bottom)
         scrollbarController?.delegate = self
 
         layout()
