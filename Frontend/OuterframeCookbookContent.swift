@@ -233,10 +233,6 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                 routeByHistoryEntryID[historyEntryID] = initialRoute
             }
             switchToRoute(initialRoute)
-            outerframeHost.updateStartPageMetadata(title: "Outerframe Cookbook",
-                                                   iconPNGData: nil,
-                                                   iconWidth: 0,
-                                                   iconHeight: 0)
 
         case .historyTraversal(let entryID, let urlString):
             let route = routeByHistoryEntryID[entryID]
@@ -363,10 +359,6 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         }
         CATransaction.commit()
 
-        outerframeHost.updatePageMetadata(title: route.pageTitle,
-                                          iconPNGData: nil,
-                                          iconWidth: 0,
-                                          iconHeight: 0)
         outerframeHost.notifyAccessibilityTreeChanged(.layoutChanged)
     }
 
