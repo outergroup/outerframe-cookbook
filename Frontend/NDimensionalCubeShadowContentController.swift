@@ -28,7 +28,7 @@ import QuartzCore
     private var device: MTLDevice?
     private var commandQueue: MTLCommandQueue?
     private var pipelineState: MTLRenderPipelineState?
-    private var displayLinkCallbackId: UUID?
+    private var displayLinkCallbackID: UUID?
     private var animationStartTime: CFTimeInterval = 0
     private var setupError: String?
 
@@ -191,16 +191,16 @@ import QuartzCore
     }
 
     private func startDisplayLinkIfNeeded() {
-        guard displayLinkCallbackId == nil else { return }
-        displayLinkCallbackId = appConnection.registerDisplayLinkCallback { [weak self] timestamp in
+        guard displayLinkCallbackID == nil else { return }
+        displayLinkCallbackID = appConnection.registerDisplayLinkCallback { [weak self] timestamp in
             self?.renderFrame(targetTimestamp: timestamp)
         }
     }
 
     private func stopDisplayLinkIfNeeded() {
-        guard let callbackId = displayLinkCallbackId else { return }
-        appConnection.stopDisplayLinkCallback(callbackId)
-        displayLinkCallbackId = nil
+        guard let callbackID = displayLinkCallbackID else { return }
+        appConnection.stopDisplayLinkCallback(callbackID)
+        displayLinkCallbackID = nil
     }
 
     private func renderFrame(targetTimestamp: CFTimeInterval) {

@@ -287,8 +287,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             self.appearance = appearance
             switchToRoute(currentRoute)
 
-        case .copySelectedPasteboardRequest(let requestId):
-            outerframeHost.sendCopySelectedPasteboardResponse(requestId: requestId,
+        case .copySelectedPasteboardRequest(let requestID):
+            outerframeHost.sendCopySelectedPasteboardResponse(requestID: requestID,
                                                               items: currentController?.pasteboardItemsForCopy() ?? [])
 
         case .shutdown:
