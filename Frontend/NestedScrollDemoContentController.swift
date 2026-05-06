@@ -256,8 +256,7 @@ import QuartzCore
                                   modifierFlags _: NSEvent.ModifierFlags,
                                   phase _: NSEvent.Phase,
                                   momentumPhase _: NSEvent.Phase,
-                                  isMomentum _: Bool,
-                                  isPrecise: Bool) {
+                                  hasPreciseScrollingDeltas: Bool) {
         guard let layers else { return }
         let root = layers.rootLayer
 
@@ -266,7 +265,7 @@ import QuartzCore
             let innerViewport = layers.innerViewportLayer
             let pointInInner = innerViewport.convert(point, from: root)
             if innerViewport.bounds.contains(pointInInner) {
-                let multiplier: CGFloat = isPrecise ? 1.0 : innerRowHeight
+                let multiplier: CGFloat = hasPreciseScrollingDeltas ? 1.0 : innerRowHeight
                 let adjustedDeltaY = delta.y * multiplier
                 if adjustedDeltaY != 0 {
                     innerScrollbarController?.cancelAnimation()
@@ -279,7 +278,7 @@ import QuartzCore
             return
         }
 
-        let multiplier: CGFloat = isPrecise ? 1.0 : outerRowHeight
+        let multiplier: CGFloat = hasPreciseScrollingDeltas ? 1.0 : outerRowHeight
         let adjustedDeltaY = delta.y * multiplier
         guard adjustedDeltaY != 0 else { return }
         outerScrollbarController?.cancelAnimation()

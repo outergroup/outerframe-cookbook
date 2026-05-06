@@ -281,9 +281,8 @@ private final class TextKitDisplayLayer: CALayer {
                      modifierFlags: NSEvent.ModifierFlags,
                      phase: NSEvent.Phase,
                      momentumPhase: NSEvent.Phase,
-                     isMomentum: Bool,
-                     isPrecise: Bool) {
-        let multiplier: CGFloat = isPrecise ? 1.0 : 36.0
+                     hasPreciseScrollingDeltas: Bool) {
+        let multiplier: CGFloat = hasPreciseScrollingDeltas ? 1.0 : 36.0
         let proposedOffset = scrollOffset - delta.y * multiplier
         setScrollOffset(proposedOffset)
     }

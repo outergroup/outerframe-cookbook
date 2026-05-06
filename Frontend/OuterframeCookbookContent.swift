@@ -29,8 +29,7 @@ protocol CookbookPageController: AnyObject {
                      modifierFlags: NSEvent.ModifierFlags,
                      phase: NSEvent.Phase,
                      momentumPhase: NSEvent.Phase,
-                     isMomentum: Bool,
-                     isPrecise: Bool)
+                     hasPreciseScrollingDeltas: Bool)
     func accessibilitySnapshotData() -> Data?
     func pasteboardItemsForCopy() -> [OuterContentPasteboardItem]
 }
@@ -46,8 +45,7 @@ extension CookbookPageController {
                      modifierFlags: NSEvent.ModifierFlags,
                      phase: NSEvent.Phase,
                      momentumPhase: NSEvent.Phase,
-                     isMomentum: Bool,
-                     isPrecise: Bool) {}
+                     hasPreciseScrollingDeltas: Bool) {}
     func accessibilitySnapshotData() -> Data? {
         OuterframeAccessibilitySnapshot.notImplementedSnapshot().serializedData()
     }
@@ -253,26 +251,40 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             currentController?.resize(width: Int(contentSize.width), height: Int(contentSize.height))
             CATransaction.commit()
 
-        case .mouseEvent(let kind, let x, let y, let modifierFlags, let clickCount):
+        case .mouseMoved(let x, let y, let modifierFlags):
             let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
             guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
             let flags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
-            switch kind {
-            case .mouseMoved:
-                currentController?.mouseMoved(to: point, modifierFlags: flags)
-            case .mouseDown:
-                currentController?.mouseDown(at: point, modifierFlags: flags, clickCount: Int(clickCount))
-            case .mouseDragged:
-                currentController?.mouseDragged(to: point, modifierFlags: flags)
-            case .mouseUp:
-                currentController?.mouseUp(at: point, modifierFlags: flags)
-            case .rightMouseDown:
-                currentController?.rightMouseDown(at: point, modifierFlags: flags, clickCount: Int(clickCount))
-            case .rightMouseUp:
-                break
-            }
+            currentController?.mouseMoved(to: point, modifierFlags: flags)
 
-        case .scrollWheelEvent(let x, let y, let deltaX, let deltaY, let modifierFlags, let phase, let momentumPhase, let isMomentum, let isPrecise):
+        case .mouseDown(let x, let y, let modifierFlags, let clickCount):
+            let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
+            guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
+            let flags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
+            currentController?.mouseDown(at: point, modifierFlags: flags, clickCount: Int(clickCount))
+
+        case .mouseDragged(let x, let y, let modifierFlags):
+            let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
+            guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
+            let flags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
+            currentController?.mouseDragged(to: point, modifierFlags: flags)
+
+        case .mouseUp(let x, let y, let modifierFlags):
+            let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
+            guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
+            let flags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
+            currentController?.mouseUp(at: point, modifierFlags: flags)
+
+        case .rightMouseDown(let x, let y, let modifierFlags, let clickCount):
+            let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
+            guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
+            let flags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
+            currentController?.rightMouseDown(at: point, modifierFlags: flags, clickCount: Int(clickCount))
+
+        case .rightMouseUp:
+            break
+
+        case .scrollWheelEvent(let x, let y, let deltaX, let deltaY, let modifierFlags, let phase, let momentumPhase, let hasPreciseScrollingDeltas):
             let point = CGPoint(x: CGFloat(x), y: CGFloat(y))
             guard CGRect(origin: .zero, size: currentSize).contains(point) else { return }
             currentController?.scrollWheel(delta: CGPoint(x: CGFloat(deltaX), y: CGFloat(deltaY)),
@@ -280,8 +292,7 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                                            modifierFlags: NSEvent.ModifierFlags(rawValue: UInt(modifierFlags)),
                                            phase: NSEvent.Phase(rawValue: UInt(phase)),
                                            momentumPhase: NSEvent.Phase(rawValue: UInt(momentumPhase)),
-                                           isMomentum: isMomentum,
-                                           isPrecise: isPrecise)
+                                           hasPreciseScrollingDeltas: hasPreciseScrollingDeltas)
 
         case .systemAppearanceUpdate(let appearance):
             self.appearance = appearance
@@ -651,9 +662,8 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
                      modifierFlags: NSEvent.ModifierFlags,
                      phase: NSEvent.Phase,
                      momentumPhase: NSEvent.Phase,
-                     isMomentum: Bool,
-                     isPrecise: Bool) {
-        let multiplier: CGFloat = isPrecise ? 1.0 : rowHeight
+                     hasPreciseScrollingDeltas: Bool) {
+        let multiplier: CGFloat = hasPreciseScrollingDeltas ? 1.0 : rowHeight
         let adjustedDeltaY = delta.y * multiplier
         guard adjustedDeltaY != 0 else { return }
 

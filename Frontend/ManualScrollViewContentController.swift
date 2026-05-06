@@ -137,9 +137,8 @@ import QuartzCore
                            modifierFlags: NSEvent.ModifierFlags,
                            phase: NSEvent.Phase,
                            momentumPhase: NSEvent.Phase,
-                           isMomentum: Bool,
-                           isPrecise: Bool) {
-        let multiplier: CGFloat = isPrecise ? 1.0 : rowHeight
+                           hasPreciseScrollingDeltas: Bool) {
+        let multiplier: CGFloat = hasPreciseScrollingDeltas ? 1.0 : rowHeight
         let adjustedDeltaY = delta.y * multiplier
         guard adjustedDeltaY != 0 else { return }
 
