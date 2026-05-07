@@ -7,7 +7,17 @@
 	objects = {
 
 /* Begin PBXCopyFilesBuildPhase section */
-		0F0000000000000000000011 /* Embed Frameworks */ = {
+		A00000000000000000000011 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B00000000000000000000011 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
@@ -20,25 +30,47 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0F0000000000000000000003 /* OuterframeCookbook.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OuterframeCookbook.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
-		0F0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0F0000000000000000000008 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		0F0000000000000000000009 /* build_site.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build_site.sh; sourceTree = "<group>"; };
-		0F000000000000000000000A /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		A00000000000000000000003 /* OuterframeCookbookSwift.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OuterframeCookbookSwift.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00000000000000000000008 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		A00000000000000000000009 /* build_site.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build_site.sh; sourceTree = "<group>"; };
+		A0000000000000000000000A /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		B00000000000000000000003 /* OuterframeCookbookObjC.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OuterframeCookbookObjC.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000008 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		B00000000000000000000009 /* build_site.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build_site.sh; sourceTree = "<group>"; };
+		B0000000000000000000000A /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		C00000000000000000000007 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		C00000000000000000000008 /* build_site.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build_site.sh; sourceTree = "<group>"; };
+		C00000000000000000000009 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0F0000000000000000000004 /* Frontend */ = {
+		A00000000000000000000004 /* Frontend */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Frontend;
 			sourceTree = "<group>";
 		};
-		0F0000000000000000000005 /* Vendor */ = {
+		A00000000000000000000005 /* Vendor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Vendor;
 			sourceTree = "<group>";
 		};
-		0F0000000000000000000006 /* Scripts */ = {
+		B00000000000000000000004 /* Frontend */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Frontend;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000005 /* Vendor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Vendor;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000000A /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000000B /* Scripts */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Scripts;
 			sourceTree = "<group>";
@@ -46,7 +78,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		0F0000000000000000000010 /* Frameworks */ = {
+		A00000000000000000000010 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B00000000000000000000010 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -56,94 +95,157 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0F0000000000000000000001 = {
+		C00000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				0F0000000000000000000004 /* Frontend */,
-				0F0000000000000000000005 /* Vendor */,
-				0F0000000000000000000006 /* Scripts */,
-				0F0000000000000000000007 /* Info.plist */,
-				0F0000000000000000000008 /* README.md */,
-				0F0000000000000000000009 /* build_site.sh */,
-				0F000000000000000000000A /* .gitignore */,
-				0F0000000000000000000002 /* Products */,
+				C0000000000000000000000A /* Common */,
+				C0000000000000000000000B /* Scripts */,
+				C00000000000000000000004 /* swift */,
+				C00000000000000000000005 /* objc */,
+				C00000000000000000000007 /* README.md */,
+				C00000000000000000000008 /* build_site.sh */,
+				C00000000000000000000009 /* LICENSE */,
+				C00000000000000000000002 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		0F0000000000000000000002 /* Products */ = {
+		C00000000000000000000002 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0F0000000000000000000003 /* OuterframeCookbook.bundle */,
+				A00000000000000000000003 /* OuterframeCookbookSwift.bundle */,
+				B00000000000000000000003 /* OuterframeCookbookObjC.bundle */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000004 /* swift */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000004 /* Frontend */,
+				A00000000000000000000005 /* Vendor */,
+				A00000000000000000000007 /* Info.plist */,
+				A00000000000000000000008 /* README.md */,
+				A00000000000000000000009 /* build_site.sh */,
+				A0000000000000000000000A /* LICENSE */,
+			);
+			path = swift;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000005 /* objc */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000004 /* Frontend */,
+				B00000000000000000000005 /* Vendor */,
+				B00000000000000000000008 /* README.md */,
+				B00000000000000000000009 /* build_site.sh */,
+				B0000000000000000000000A /* LICENSE */,
+			);
+			path = objc;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0F000000000000000000000B /* OuterframeCookbook */ = {
+		A0000000000000000000000B /* OuterframeCookbookSwift */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0F0000000000000000000016 /* Build configuration list for PBXNativeTarget "OuterframeCookbook" */;
+			buildConfigurationList = A00000000000000000000016 /* Build configuration list for PBXNativeTarget "OuterframeCookbookSwift" */;
 			buildPhases = (
-				0F000000000000000000000F /* Sources */,
-				0F0000000000000000000010 /* Frameworks */,
-				0F0000000000000000000012 /* Resources */,
-				0F0000000000000000000011 /* Embed Frameworks */,
+				A0000000000000000000000F /* Sources */,
+				A00000000000000000000010 /* Frameworks */,
+				A00000000000000000000012 /* Resources */,
+				A00000000000000000000011 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0F0000000000000000000004 /* Frontend */,
-				0F0000000000000000000005 /* Vendor */,
+				A00000000000000000000004 /* Frontend */,
+				A00000000000000000000005 /* Vendor */,
+				C0000000000000000000000A /* Common */,
 			);
-			name = OuterframeCookbook;
+			name = OuterframeCookbookSwift;
 			packageProductDependencies = (
 			);
-			productName = OuterframeCookbook;
-			productReference = 0F0000000000000000000003 /* OuterframeCookbook.bundle */;
+			productName = OuterframeCookbookSwift;
+			productReference = A00000000000000000000003 /* OuterframeCookbookSwift.bundle */;
+			productType = "com.apple.product-type.bundle";
+		};
+		B0000000000000000000000B /* OuterframeCookbookObjC */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000016 /* Build configuration list for PBXNativeTarget "OuterframeCookbookObjC" */;
+			buildPhases = (
+				B0000000000000000000000F /* Sources */,
+				B00000000000000000000010 /* Frameworks */,
+				B00000000000000000000012 /* Resources */,
+				B00000000000000000000011 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B00000000000000000000004 /* Frontend */,
+				B00000000000000000000005 /* Vendor */,
+				C0000000000000000000000A /* Common */,
+			);
+			name = OuterframeCookbookObjC;
+			packageProductDependencies = (
+			);
+			productName = OuterframeCookbookObjC;
+			productReference = B00000000000000000000003 /* OuterframeCookbookObjC.bundle */;
 			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		0F000000000000000000000C /* Project object */ = {
+		C0000000000000000000000C /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
-					0F000000000000000000000B = {
+					A0000000000000000000000B = {
 						CreatedOnToolsVersion = 26.2;
 						LastSwiftMigration = 2620;
 					};
+					B0000000000000000000000B = {
+						CreatedOnToolsVersion = 26.2;
+					};
 				};
 			};
-			buildConfigurationList = 0F0000000000000000000015 /* Build configuration list for PBXProject "OuterframeCookbook" */;
+			buildConfigurationList = C00000000000000000000015 /* Build configuration list for PBXProject "OuterframeCookbook" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 0F0000000000000000000001;
+			mainGroup = C00000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 0F0000000000000000000002 /* Products */;
+			productRefGroup = C00000000000000000000002 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0F000000000000000000000B /* OuterframeCookbook */,
+				A0000000000000000000000B /* OuterframeCookbookSwift */,
+				B0000000000000000000000B /* OuterframeCookbookObjC */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		0F0000000000000000000012 /* Resources */ = {
+		A00000000000000000000012 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B00000000000000000000012 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -153,7 +255,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		0F000000000000000000000F /* Sources */ = {
+		A0000000000000000000000F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0000000000000000000000F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -163,7 +272,140 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		0F0000000000000000000013 /* Debug */ = {
+		A00000000000000000000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/swift",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/swift";
+				INFOPLIST_FILE = swift/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = OuterframeCookbookSwift.OuterframeCookbookContent;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.outergroup.OuterframeCookbookSwift;
+				PRODUCT_MODULE_NAME = OuterframeCookbookSwift;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/swift";
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Debug;
+		};
+		A00000000000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/swift",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/swift";
+				INFOPLIST_FILE = swift/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = OuterframeCookbookSwift.OuterframeCookbookContent;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.outergroup.OuterframeCookbookSwift;
+				PRODUCT_MODULE_NAME = OuterframeCookbookSwift;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/swift";
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Release;
+		};
+		B00000000000000000000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/objc",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/objc";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = OuterframeCookbookObjCContent;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.outergroup.OuterframeCookbookObjC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/objc";
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Debug;
+		};
+		B00000000000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/objc",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/objc";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = OuterframeCookbookObjCContent;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.outergroup.OuterframeCookbookObjC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/objc";
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Release;
+		};
+		C00000000000000000000013 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -177,7 +419,7 @@
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -226,7 +468,7 @@
 			};
 			name = Debug;
 		};
-		0F0000000000000000000014 /* Release */ = {
+		C00000000000000000000014 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -240,7 +482,7 @@
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -283,97 +525,37 @@
 			};
 			name = Release;
 		};
-		0F0000000000000000000017 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)";
-				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSPrincipalClass = OuterframeCookbook.OuterframeCookbookContent;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.OuterframeCookbook;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 6.0;
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
-				WRAPPER_EXTENSION = bundle;
-			};
-			name = Debug;
-		};
-		0F0000000000000000000018 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)";
-				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSPrincipalClass = OuterframeCookbook.OuterframeCookbookContent;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.OuterframeCookbook;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 6.0;
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
-				WRAPPER_EXTENSION = bundle;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0F0000000000000000000015 /* Build configuration list for PBXProject "OuterframeCookbook" */ = {
+		A00000000000000000000016 /* Build configuration list for PBXNativeTarget "OuterframeCookbookSwift" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0F0000000000000000000013 /* Debug */,
-				0F0000000000000000000014 /* Release */,
+				A00000000000000000000017 /* Debug */,
+				A00000000000000000000018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0F0000000000000000000016 /* Build configuration list for PBXNativeTarget "OuterframeCookbook" */ = {
+		B00000000000000000000016 /* Build configuration list for PBXNativeTarget "OuterframeCookbookObjC" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0F0000000000000000000017 /* Debug */,
-				0F0000000000000000000018 /* Release */,
+				B00000000000000000000017 /* Debug */,
+				B00000000000000000000018 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C00000000000000000000015 /* Build configuration list for PBXProject "OuterframeCookbook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000000000000000000013 /* Debug */,
+				C00000000000000000000014 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 0F000000000000000000000C /* Project object */;
+	rootObject = C0000000000000000000000C /* Project object */;
 }

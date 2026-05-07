@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0F000000000000000000000B"
-               BuildableName = "OuterframeCookbook.bundle"
-               BlueprintName = "OuterframeCookbook"
+               BlueprintIdentifier = "B0000000000000000000000B"
+               BuildableName = "OuterframeCookbookObjC.bundle"
+               BlueprintName = "OuterframeCookbookObjC"
                ReferencedContainer = "container:OuterframeCookbook.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -50,9 +50,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0F000000000000000000000B"
-            BuildableName = "OuterframeCookbook.bundle"
-            BlueprintName = "OuterframeCookbook"
+            BlueprintIdentifier = "B0000000000000000000000B"
+            BuildableName = "OuterframeCookbookObjC.bundle"
+            BlueprintName = "OuterframeCookbookObjC"
             ReferencedContainer = "container:OuterframeCookbook.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

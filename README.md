@@ -1,9 +1,20 @@
-# Outerframe Cookbook
+# Outerframe macOS Cookbooks
 
-A cookbook of example [outerframe](https://github.com/outergroup/outerframe) content.
+Example [outerframe](https://github.com/outergroup/outerframe) content for macOS in two implementations:
 
+- `swift/` contains the Swift cookbook sources for `cookbook-macos-swift.outer`
+- `objc/` contains the Objective-C cookbook sources for `cookbook-macos-objc.outer`
 
-## Build
+Both cookbooks expose the same recipe list so the Swift and Objective-C vendored libraries can be manually tested against similar content.
+
+The repo has one Xcode project, `OuterframeCookbook.xcodeproj`, with two bundle targets:
+
+- `OuterframeCookbookSwift`
+- `OuterframeCookbookObjC`
+
+The shared `OuterframeCookbooks` scheme builds both targets.
+
+## Build Both
 
 From this directory:
 
@@ -13,42 +24,110 @@ From this directory:
 
 That produces a ready-to-upload static site in `build/site/`:
 
-- `cookbook.outer`
-- `binaries/OuterframeCookbook/index.html`
-- `binaries/OuterframeCookbook/macos-arm`
-- `binaries/OuterframeCookbook/macos-x86`
+- `cookbook-macos-swift.outer`
+- `cookbook-macos-objc.outer`
+- `binaries/OuterframeCookbookSwift/`
+- `binaries/OuterframeCookbookObjC/`
 
-If you want the raw build command, `build_site.sh` runs `xcodebuild` against `OuterframeCookbook.xcodeproj` and then archives the built bundle with `aa`.
-
-By default, the generated `.outer` file points at `/binaries/OuterframeCookbook`, so the uploaded site is intended to live at the web server root. If you want to host it under a subpath, set `BINARY_URL_PATH` when building, for example:
+By default, generated `.outer` files point at `/binaries/...`, so the uploaded site is intended to live at a web server root. Override the binary URLs when hosting under a subpath:
 
 ```bash
-BINARY_URL_PATH=/demo/binaries/OuterframeCookbook ./build_site.sh
+SWIFT_BINARY_URL_PATH=/demo/binaries/OuterframeCookbookSwift \
+OBJC_BINARY_URL_PATH=/demo/binaries/OuterframeCookbookObjC \
+./build_site.sh
 ```
 
-## Local testing
+Each language folder also has its own `build_site.sh` for building only that cookbook through the shared Xcode project.
+
+## Local Testing
 
 Build the site, then serve it locally:
 
 ```bash
-python3 Scripts/serve_site.py --root build/site --port 8026
+python3 Scripts/serve_site.py --root build/site --port 8025
 ```
 
-Then open this URL in Outer Loop:
+Then open either URL in Outer Loop:
 
 ```text
-http://127.0.0.1:8025/cookbook.outer
+http://127.0.0.1:8025/cookbook-macos-swift.outer
+http://127.0.0.1:8025/cookbook-macos-objc.outer
 ```
 
-
-## Deploying to a static server
+## Deploying to a Static Server
 
 Upload the contents of `build/site/` to your server.
 
 The server needs to satisfy these rules:
 
-- `cookbook.outer` should be served as `application/vnd.outerframe`
-- `binaries/OuterframeCookbook/` should return a body containing `macos-arm` and `macos-x86`
-- `binaries/OuterframeCookbook/macos-arm` and `binaries/OuterframeCookbook/macos-x86` should be served as raw binary data
+- `cookbook-macos-swift.outer` and `cookbook-macos-objc.outer` should be served as `application/vnd.outerframe`
+- `binaries/OuterframeCookbookSwift/macos-arm`, `binaries/OuterframeCookbookSwift/macos-x86`, `binaries/OuterframeCookbookObjC/macos-arm`, and `binaries/OuterframeCookbookObjC/macos-x86` should be served as raw binary data
 
-After upload, navigate Outer Loop to the deployed `.outer` URL.
+`build_site.sh` also writes `index.html` files under each binary directory with a plain-text list of supported platforms. Current Outer Loop builds directly request the current platform archive, but the listings are harmless to upload.
+
+### AWS S3
+
+Put the correct `Content-Type` metadata on the S3 objects.
+
+If the site is hosted at the bucket root:
+
+```bash
+BUCKET=your-bucket-name
+
+for cookbook in cookbook-macos-swift cookbook-macos-objc; do
+  aws s3 cp "build/site/${cookbook}.outer" "s3://${BUCKET}/${cookbook}.outer" \
+    --content-type "application/vnd.outerframe"
+done
+
+for app in OuterframeCookbookSwift OuterframeCookbookObjC; do
+  aws s3 cp "build/site/binaries/${app}/index.html" "s3://${BUCKET}/binaries/${app}/index.html" \
+    --content-type "text/plain; charset=utf-8"
+
+  for platform in macos-arm macos-x86; do
+    aws s3 cp "build/site/binaries/${app}/${platform}" "s3://${BUCKET}/binaries/${app}/${platform}" \
+      --content-type "application/octet-stream"
+  done
+done
+```
+
+If the site is hosted under an S3 path prefix, rebuild with matching binary paths and upload to the same prefix:
+
+```bash
+PREFIX=demo
+
+SWIFT_BINARY_URL_PATH="/${PREFIX}/binaries/OuterframeCookbookSwift" \
+OBJC_BINARY_URL_PATH="/${PREFIX}/binaries/OuterframeCookbookObjC" \
+./build_site.sh
+
+for cookbook in cookbook-macos-swift cookbook-macos-objc; do
+  aws s3 cp "build/site/${cookbook}.outer" "s3://${BUCKET}/${PREFIX}/${cookbook}.outer" \
+    --content-type "application/vnd.outerframe"
+done
+
+for app in OuterframeCookbookSwift OuterframeCookbookObjC; do
+  aws s3 cp "build/site/binaries/${app}/index.html" "s3://${BUCKET}/${PREFIX}/binaries/${app}/index.html" \
+    --content-type "text/plain; charset=utf-8"
+
+  for platform in macos-arm macos-x86; do
+    aws s3 cp "build/site/binaries/${app}/${platform}" "s3://${BUCKET}/${PREFIX}/binaries/${app}/${platform}" \
+      --content-type "application/octet-stream"
+  done
+done
+```
+
+Check the deployed metadata:
+
+```bash
+curl -I https://your-domain.example/cookbook-macos-swift.outer
+curl -I https://your-domain.example/cookbook-macos-objc.outer
+curl -I https://your-domain.example/binaries/OuterframeCookbookSwift/macos-arm
+curl -I https://your-domain.example/binaries/OuterframeCookbookObjC/macos-arm
+```
+
+The `.outer` responses must include `Content-Type: application/vnd.outerframe`. The platform archive responses should be `application/octet-stream`.
+
+After upload, navigate Outer Loop to the deployed `.outer` URLs.
+
+## Vendored Objective-C Library
+
+The Objective-C cookbook vendors the same `Vendor/OuterframeC` and `Vendor/Common` files as `~/dev/src/hello-outerframe-macOS-objc`. When those vendored files need changes, update both copies together so the cookbook remains a realistic manual test target for the Objective-C library.

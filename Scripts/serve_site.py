@@ -30,7 +30,10 @@ def main() -> int:
     root = Path(args.root).resolve()
     handler = partial(OuterframeSiteHandler, directory=str(root))
     server = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
-    print(f"Serving {root} at http://127.0.0.1:{args.port}/cookbook.outer")
+    outer_files = sorted(path.name for path in root.glob("*.outer"))
+    print(f"Serving {root} at http://127.0.0.1:{args.port}/")
+    for outer_file in outer_files:
+        print(f"  http://127.0.0.1:{args.port}/{outer_file}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

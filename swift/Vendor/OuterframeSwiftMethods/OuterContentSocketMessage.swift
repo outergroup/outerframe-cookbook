@@ -157,10 +157,10 @@ enum BrowserToContentMessage {
                     var authPayload = OffsetPayloadBuilder(referenceBaseOffset: 0)
                     authPayload.append(uint8: InitArgKind.proxyAuth.rawValue)
                     var flags: UInt8 = 0
-                    if let username = proxy.username {
+                    if proxy.username != nil {
                         flags |= 1 << 0
                     }
-                    if let password = proxy.password {
+                    if proxy.password != nil {
                         flags |= 1 << 1
                     }
                     authPayload.append(uint8: flags)
