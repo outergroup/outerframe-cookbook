@@ -628,6 +628,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
             updateColors(disableActions: true)
             return
         }
+        appConnection.setCursor(.arrow)
         selectRoute(route)
     }
 

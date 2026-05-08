@@ -136,6 +136,7 @@ static void OFCookbookTableOfContentsMouseDown(OFCookbookPageContext *context, C
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForContext(context);
     for (NSUInteger i = 0; i < state.hitFrames.count; i++) {
         if (CGRectContainsPoint(state.hitFrames[i].rectValue, point)) {
+            OFHostSetCursor(context->host, OFCursorTypeArrow);
             OFCookbookNavigateToRoute(context, state.hitRoutes[i].integerValue);
             return;
         }
