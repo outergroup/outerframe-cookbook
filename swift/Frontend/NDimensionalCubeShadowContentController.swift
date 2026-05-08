@@ -117,6 +117,45 @@ import QuartzCore
         return root
     }
 
+    func handleMessage(_ message: BrowserToContentMessage, context: CookbookPageContext) {
+        switch message {
+        case .initializeContent(let arguments):
+            context.configure(with: arguments)
+            context.installPageLayer(initialize(with: context.initialData, size: context.currentSize))
+            context.updateRootAppearance()
+
+        case .resizeContent(let size):
+            context.resizeRootAndPageLayer(to: size)
+            resize(width: Int(size.width), height: Int(size.height))
+
+        case .systemAppearanceUpdate(let appearance):
+            context.appearance = appearance
+            context.switchToRoute(context.route)
+
+        case .historyTraversal(let entryID, let urlString):
+            let route = context.routeForHistoryEntry(entryID, urlString: urlString)
+            context.recordHistoryRoute(route, for: entryID)
+            if route != context.route {
+                context.switchToRoute(route)
+            }
+
+        case .historyEntryRejected(let entryID, _):
+            context.removeHistoryRoute(for: entryID)
+
+        case .accessibilitySnapshotRequest(let requestID):
+            context.sendAccessibilitySnapshotResponse(requestID: requestID, data: accessibilitySnapshotData())
+
+        case .copySelectedPasteboardRequest(let requestID):
+            context.sendCopySelectedPasteboardResponse(requestID: requestID, items: pasteboardItemsForCopy())
+
+        case .shutdown:
+            context.requestShutdown()
+
+        default:
+            break
+        }
+    }
+
     func resize(width: Int, height: Int) {
         currentSize = CGSize(width: CGFloat(width), height: CGFloat(height))
         layout()

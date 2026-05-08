@@ -167,6 +167,74 @@ private final class TextKitDisplayLayer: CALayer {
         return root
     }
 
+    func handleMessage(_ message: BrowserToContentMessage, context: CookbookPageContext) {
+        switch message {
+        case .initializeContent(let arguments):
+            context.configure(with: arguments)
+            context.installPageLayer(initialize(with: context.initialData, size: context.currentSize))
+            context.updateRootAppearance()
+
+        case .resizeContent(let size):
+            context.resizeRootAndPageLayer(to: size)
+            resize(width: Int(size.width), height: Int(size.height))
+
+        case .systemAppearanceUpdate(let appearance):
+            context.appearance = appearance
+            context.switchToRoute(context.route)
+
+        case .historyTraversal(let entryID, let urlString):
+            let route = context.routeForHistoryEntry(entryID, urlString: urlString)
+            context.recordHistoryRoute(route, for: entryID)
+            if route != context.route {
+                context.switchToRoute(route)
+            }
+
+        case .historyEntryRejected(let entryID, _):
+            context.removeHistoryRoute(for: entryID)
+
+        case .accessibilitySnapshotRequest(let requestID):
+            context.sendAccessibilitySnapshotResponse(requestID: requestID, data: accessibilitySnapshotData())
+
+        case .copySelectedPasteboardRequest(let requestID):
+            context.sendCopySelectedPasteboardResponse(requestID: requestID, items: pasteboardItemsForCopy())
+
+        case .mouseMoved(let point, let modifierFlags):
+            guard context.isPointInsideContent(point) else { return }
+            mouseMoved(to: point, modifierFlags: modifierFlags)
+
+        case .mouseDown(let point, let modifierFlags, let clickCount):
+            guard context.isPointInsideContent(point) else { return }
+            mouseDown(at: point, modifierFlags: modifierFlags, clickCount: clickCount)
+
+        case .rightMouseDown(let point, let modifierFlags, let clickCount):
+            guard context.isPointInsideContent(point) else { return }
+            rightMouseDown(at: point, modifierFlags: modifierFlags, clickCount: clickCount)
+
+        case .mouseDragged(let point, let modifierFlags):
+            guard context.isPointInsideContent(point) else { return }
+            mouseDragged(to: point, modifierFlags: modifierFlags)
+
+        case .mouseUp(let point, let modifierFlags):
+            guard context.isPointInsideContent(point) else { return }
+            mouseUp(at: point, modifierFlags: modifierFlags)
+
+        case .scrollWheelEvent(let point, let delta, let modifierFlags, let phase, let momentumPhase, let hasPreciseScrollingDeltas):
+            guard context.isPointInsideContent(point) else { return }
+            scrollWheel(delta: delta,
+                        at: point,
+                        modifierFlags: modifierFlags,
+                        phase: phase,
+                        momentumPhase: momentumPhase,
+                        hasPreciseScrollingDeltas: hasPreciseScrollingDeltas)
+
+        case .shutdown:
+            context.requestShutdown()
+
+        default:
+            break
+        }
+    }
+
     func resize(width: Int, height: Int) {
         currentSize = CGSize(width: CGFloat(width), height: CGFloat(height))
         layout()
