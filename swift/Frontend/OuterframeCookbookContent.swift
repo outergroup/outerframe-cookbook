@@ -81,8 +81,7 @@ final class CookbookScrollbarDelegate: ScrollbarControllerDelegate {
 fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDelegate {
     fileprivate enum Route: CaseIterable {
         case tableOfContents
-        case accessibleTextRegion
-        case manualScroll
+        case textRegion
         case nestedScroll
         case timelineRange
         case giantPageWithAnimations
@@ -92,10 +91,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             switch self {
             case .tableOfContents:
                 return "Outerframe Cookbook"
-            case .accessibleTextRegion:
-                return "Accessible Text Region"
-            case .manualScroll:
-                return "Manual Scroll View"
+            case .textRegion:
+                return "Text Region"
             case .nestedScroll:
                 return "Nested Scroll Demo"
             case .timelineRange:
@@ -110,11 +107,9 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         var description: String {
             switch self {
             case .tableOfContents:
-                return "Choose a cookbook entry."
-            case .accessibleTextRegion:
+                return "Choose a page."
+            case .textRegion:
                 return "A TextKit 2 scrollable text region with selection, copy, and accessibility."
-            case .manualScroll:
-                return "A manual layer-backed scroll view with a custom scrollbar."
             case .nestedScroll:
                 return "Nested scroll regions with independent hit testing."
             case .timelineRange:
@@ -126,14 +121,12 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             }
         }
 
-        var recipeIdentifier: String? {
+        var pageIdentifier: String? {
             switch self {
             case .tableOfContents:
                 return nil
-            case .accessibleTextRegion:
-                return "accessible_text"
-            case .manualScroll:
-                return "manual_scroll"
+            case .textRegion:
+                return "text_region"
             case .nestedScroll:
                 return "nested_scroll"
             case .timelineRange:
@@ -148,13 +141,13 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
         static func make(from url: URL?) -> Route {
             guard let url,
                   let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                  let recipe = components.queryItems?.first(where: { $0.name == "recipe" })?.value else {
+                  let page = components.queryItems?.first(where: { $0.name == "page" })?.value else {
                 return .tableOfContents
             }
-            return make(fromRecipeIdentifier: recipe)
+            return make(fromPageIdentifier: page)
         }
 
-        private static func make(fromRecipeIdentifier identifier: String?) -> Route {
+        private static func make(fromPageIdentifier identifier: String?) -> Route {
             guard var slug = identifier, !slug.isEmpty else {
                 return .tableOfContents
             }
@@ -167,10 +160,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             slug = slug.replacingOccurrences(of: "-", with: "_").lowercased()
 
             switch slug {
-            case "accessible_text", "text", "textkit", "textkit2", "copyable_text":
-                return .accessibleTextRegion
-            case "manual_scroll", "manual":
-                return .manualScroll
+            case "text_region", "text", "textkit", "textkit2", "copyable_text":
+                return .textRegion
             case "nested_scroll", "nested":
                 return .nestedScroll
             case "timeline_range", "timeline", "brush":
@@ -324,10 +315,8 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
                                                                   selectRoute: { [weak self] route in
                                                                       self?.navigateToRoute(route)
                                                                   })
-        case .accessibleTextRegion:
-            controller = AccessibleTextRegionContentController(appConnection: outerframeHost)
-        case .manualScroll:
-            controller = ManualScrollViewContentController(appConnection: outerframeHost)
+        case .textRegion:
+            controller = TextRegionContentController(appConnection: outerframeHost)
         case .nestedScroll:
             controller = NestedScrollDemoContentController(appConnection: outerframeHost)
         case .timelineRange:
@@ -374,9 +363,9 @@ fileprivate final class OuterframeCookbookHandler: NSObject, OuterframeHostDeleg
             return nil
         }
 
-        var queryItems = components.queryItems?.filter { $0.name != "recipe" } ?? []
-        if let recipeIdentifier = route.recipeIdentifier {
-            queryItems.append(URLQueryItem(name: "recipe", value: recipeIdentifier))
+        var queryItems = components.queryItems?.filter { $0.name != "page" } ?? []
+        if let pageIdentifier = route.pageIdentifier {
+            queryItems.append(URLQueryItem(name: "page", value: pageIdentifier))
         }
         components.queryItems = queryItems.isEmpty ? nil : queryItems
         components.fragment = nil
@@ -446,12 +435,9 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
     private var isPressingEntry = false
 
     private let entries: [Entry] = [
-        Entry(route: .accessibleTextRegion,
-              title: OuterframeCookbookHandler.Route.accessibleTextRegion.pageTitle,
-              description: OuterframeCookbookHandler.Route.accessibleTextRegion.description),
-        Entry(route: .manualScroll,
-              title: OuterframeCookbookHandler.Route.manualScroll.pageTitle,
-              description: OuterframeCookbookHandler.Route.manualScroll.description),
+        Entry(route: .textRegion,
+              title: OuterframeCookbookHandler.Route.textRegion.pageTitle,
+              description: OuterframeCookbookHandler.Route.textRegion.description),
         Entry(route: .nestedScroll,
               title: OuterframeCookbookHandler.Route.nestedScroll.pageTitle,
               description: OuterframeCookbookHandler.Route.nestedScroll.description),
@@ -506,7 +492,7 @@ private final class CookbookTableOfContentsContentController: NSObject, Cookbook
         let subtitle = makeTextLayer(font: .systemFont(ofSize: 15, weight: .regular),
                                      fontSize: 15,
                                      color: .secondaryLabelColor)
-        subtitle.string = "Pick a recipe:"
+        subtitle.string = "Pick a page:"
         content.addSublayer(subtitle)
 
         var layers: [EntryLayers] = []

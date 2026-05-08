@@ -5,36 +5,35 @@ static void OFCookbookHandleDisconnect(OFHost *host, void *context);
 
 static OFCookbookRoute OFCookbookRouteFromURLStringObject(NSString *urlString) {
     NSURLComponents *components = urlString.length ? [NSURLComponents componentsWithString:urlString] : nil;
-    NSString *recipe = nil;
+    NSString *page = nil;
     for (NSURLQueryItem *item in components.queryItems) {
-        if ([item.name isEqualToString:@"recipe"]) {
-            recipe = item.value.lowercaseString;
+        if ([item.name isEqualToString:@"page"]) {
+            page = item.value.lowercaseString;
             break;
         }
     }
-    recipe = [[recipe stringByReplacingOccurrencesOfString:@"-" withString:@"_"] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-    if ([recipe isEqualToString:@"accessible_text"] || [recipe isEqualToString:@"text"] || [recipe isEqualToString:@"textkit"]) return OFCookbookRouteAccessibleText;
-    if ([recipe isEqualToString:@"manual_scroll"] || [recipe isEqualToString:@"manual"]) return OFCookbookRouteManualScroll;
-    if ([recipe isEqualToString:@"nested_scroll"] || [recipe isEqualToString:@"nested"]) return OFCookbookRouteNestedScroll;
-    if ([recipe isEqualToString:@"timeline_range"] || [recipe isEqualToString:@"timeline"] || [recipe isEqualToString:@"brush"]) return OFCookbookRouteTimelineRange;
-    if ([recipe isEqualToString:@"giant_page"] || [recipe isEqualToString:@"giant"] || [recipe isEqualToString:@"animations"]) return OFCookbookRouteGiantPage;
-    if ([recipe isEqualToString:@"n_cube"] || [recipe isEqualToString:@"ncube"] || [recipe isEqualToString:@"hypercube"]) return OFCookbookRouteNCube;
+    page = [[page stringByReplacingOccurrencesOfString:@"-" withString:@"_"] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if ([page isEqualToString:@"text_region"] || [page isEqualToString:@"text"] || [page isEqualToString:@"textkit"]) return OFCookbookRouteTextRegion;
+    if ([page isEqualToString:@"nested_scroll"] || [page isEqualToString:@"nested"]) return OFCookbookRouteNestedScroll;
+    if ([page isEqualToString:@"timeline_range"] || [page isEqualToString:@"timeline"] || [page isEqualToString:@"brush"]) return OFCookbookRouteTimelineRange;
+    if ([page isEqualToString:@"giant_page"] || [page isEqualToString:@"giant"] || [page isEqualToString:@"animations"]) return OFCookbookRouteGiantPage;
+    if ([page isEqualToString:@"n_cube"] || [page isEqualToString:@"ncube"] || [page isEqualToString:@"hypercube"]) return OFCookbookRouteNCube;
     return OFCookbookRouteTableOfContents;
 }
 
-static void OFCookbookRefreshRecipeContextHistory(OFCookbookRecipeContext *context) {
+static void OFCookbookRefreshPageContextHistory(OFCookbookPageContext *context) {
     context->history_entry_id = OFHostCurrentHistoryEntryID(context->host);
     context->history_length = OFHostHistoryLength(context->host);
     context->can_go_back = OFHostCanGoBackInHistory(context->host);
     context->can_go_forward = OFHostCanGoForwardInHistory(context->host);
 }
 
-OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
+OFCookbookPageContext *OFCookbookGetPageContext(void *runtime) {
     OFCookbookController *controller = (__bridge OFCookbookController *)runtime;
-    OFCookbookRecipeContext *context = &controller->_recipe_context;
+    OFCookbookPageContext *context = &controller->_page_context;
     context->runtime = (__bridge void *)controller;
     context->host = controller.host;
-    OFCookbookRefreshRecipeContextHistory(context);
+    OFCookbookRefreshPageContextHistory(context);
     return context;
 }
 
@@ -47,14 +46,14 @@ OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
     }
 
     _appConnection = appConnection;
-    _recipe_context = (OFCookbookRecipeContext){
+    _page_context = (OFCookbookPageContext){
         .route = OFCookbookRouteTableOfContents,
         .current_size = CGSizeMake(800, 600),
         .runtime = (__bridge void *)self,
         .bundle = [NSBundle bundleForClass:self.class],
         .appearance = NSAppearance.currentDrawingAppearance,
     };
-    _recipeHandler = OFCookbookRecipeHandlerForRoute(_recipe_context.route);
+    _pageHandler = OFCookbookPageHandlerForRoute(_page_context.route);
 
     OFHostCallbacks callbacks = {
         .message = OFCookbookBootstrapMessage,
@@ -64,15 +63,15 @@ OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
     if (!_host) {
         return nil;
     }
-    _recipe_context.host = _host;
-    OFCookbookRefreshRecipeContextHistory(&_recipe_context);
+    _page_context.host = _host;
+    OFCookbookRefreshPageContextHistory(&_page_context);
 
     _retainedSelf = self;
     return self;
 }
 
 - (void)dealloc {
-    [self leaveCurrentRecipe];
+    [self leaveCurrentPage];
     if (_host) {
         OFHostDestroy(_host);
         _host = NULL;
@@ -83,7 +82,7 @@ OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
     OFHostConfigureFromInitialize(self.host, initialize);
     CALayer *root = [CALayer layer];
     root.masksToBounds = YES;
-    _recipe_context.root_layer = root;
+    _page_context.root_layer = root;
 
     if (!self.registeredLayer && [self.appConnection respondsToSelector:@selector(registerLayer:)]) {
         [self.appConnection registerLayer:root];
@@ -120,23 +119,22 @@ OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
 
     NSMutableArray<NSURLQueryItem *> *queryItems = [NSMutableArray array];
     for (NSURLQueryItem *item in components.queryItems ?: @[]) {
-        if (![item.name isEqualToString:@"recipe"]) {
+        if (![item.name isEqualToString:@"page"]) {
             [queryItems addObject:item];
         }
     }
 
-    NSString *recipe = nil;
+    NSString *page = nil;
     switch (route) {
-        case OFCookbookRouteAccessibleText: recipe = @"accessible_text"; break;
-        case OFCookbookRouteManualScroll: recipe = @"manual_scroll"; break;
-        case OFCookbookRouteNestedScroll: recipe = @"nested_scroll"; break;
-        case OFCookbookRouteTimelineRange: recipe = @"timeline_range"; break;
-        case OFCookbookRouteGiantPage: recipe = @"giant_page"; break;
-        case OFCookbookRouteNCube: recipe = @"n_cube"; break;
+        case OFCookbookRouteTextRegion: page = @"text_region"; break;
+        case OFCookbookRouteNestedScroll: page = @"nested_scroll"; break;
+        case OFCookbookRouteTimelineRange: page = @"timeline_range"; break;
+        case OFCookbookRouteGiantPage: page = @"giant_page"; break;
+        case OFCookbookRouteNCube: page = @"n_cube"; break;
         case OFCookbookRouteTableOfContents: break;
     }
-    if (recipe) {
-        [queryItems addObject:[NSURLQueryItem queryItemWithName:@"recipe" value:recipe]];
+    if (page) {
+        [queryItems addObject:[NSURLQueryItem queryItemWithName:@"page" value:page]];
     }
     components.queryItems = queryItems.count > 0 ? queryItems : nil;
     components.fragment = nil;
@@ -144,37 +142,37 @@ OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
 }
 
 - (void)navigateToRoute:(OFCookbookRoute)route {
-    if (route == _recipe_context.route) {
+    if (route == _page_context.route) {
         return;
     }
     NSString *url = [self urlStringForRoute:route];
     OFHostPushHistoryEntry(self.host, url.UTF8String);
     [self switchToRoute:route];
-    [self enterCurrentRecipe];
+    [self enterCurrentPage];
 }
 
 - (void)switchToRoute:(OFCookbookRoute)route {
-    [self leaveCurrentRecipe];
-    _recipe_context.route = route;
-    self.recipeHandler = OFCookbookRecipeHandlerForRoute(route);
-    if (self.host && self.recipeHandler) {
-        OFHostSetMessageCallback(self.host, self.recipeHandler->handle_message, (__bridge void *)self);
+    [self leaveCurrentPage];
+    _page_context.route = route;
+    self.pageHandler = OFCookbookPageHandlerForRoute(route);
+    if (self.host && self.pageHandler) {
+        OFHostSetMessageCallback(self.host, self.pageHandler->handle_message, (__bridge void *)self);
     }
 }
 
-- (void)enterCurrentRecipe {
-    if (self.recipeHandler && self.recipeHandler->enter_route) {
-        self.recipeHandler->enter_route((__bridge void *)self);
+- (void)enterCurrentPage {
+    if (self.pageHandler && self.pageHandler->enter_route) {
+        self.pageHandler->enter_route((__bridge void *)self);
     }
     OFHostSendAccessibilityTreeChanged(self.host, OFAccessibilityNotificationLayoutChanged);
 }
 
-- (void)leaveCurrentRecipe {
-    if (!self.recipeHandler) {
+- (void)leaveCurrentPage {
+    if (!self.pageHandler) {
         return;
     }
-    if (self.recipeHandler->leave_route) {
-        self.recipeHandler->leave_route((__bridge void *)self);
+    if (self.pageHandler->leave_route) {
+        self.pageHandler->leave_route((__bridge void *)self);
     }
 }
 
@@ -189,25 +187,25 @@ OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime) {
 }
 
 - (void)shutdown {
-    [self leaveCurrentRecipe];
+    [self leaveCurrentPage];
     if (self.host) {
         OFHostDestroy(self.host);
         self.host = NULL;
     }
-    _recipe_context.root_layer = nil;
-    _recipe_context.page_layer = nil;
-    _recipe_context.recipe_state = NULL;
+    _page_context.root_layer = nil;
+    _page_context.page_layer = nil;
+    _page_context.page_state = NULL;
     self.appConnection = nil;
     self.retainedSelf = nil;
 }
 
 @end
 
-void OFCookbookSendAccessibilitySnapshotResponse(OFCookbookRecipeContext *context, OFUUID request_id, const OFBuffer *snapshot) {
+void OFCookbookSendAccessibilitySnapshotResponse(OFCookbookPageContext *context, OFUUID request_id, const OFBuffer *snapshot) {
     OFHostSendAccessibilitySnapshotResponse(context->host, request_id, snapshot ? snapshot->bytes : NULL, snapshot ? snapshot->length : 0);
 }
 
-void OFCookbookSendDefaultAccessibilitySnapshotResponse(OFCookbookRecipeContext *context, OFUUID request_id) {
+void OFCookbookSendDefaultAccessibilitySnapshotResponse(OFCookbookPageContext *context, OFUUID request_id) {
     NSMutableArray<NSMutableData *> *retainedCStringData = [NSMutableArray array];
     const char *(^retainedCString)(NSString *) = ^const char *(NSString *string) {
         NSData *encoded = [(string ?: @"") dataUsingEncoding:NSUTF8StringEncoding] ?: [NSData data];
@@ -270,15 +268,15 @@ OFCookbookRoute OFCookbookRouteFromURLStringView(OFStringView url) {
     return OFCookbookRouteFromURLStringObject(urlString);
 }
 
-void OFCookbookNavigateToRoute(OFCookbookRecipeContext *context, OFCookbookRoute route) {
+void OFCookbookNavigateToRoute(OFCookbookPageContext *context, OFCookbookRoute route) {
     OFCookbookController *controller = (__bridge OFCookbookController *)context->runtime;
     [controller navigateToRoute:route];
 }
 
-void OFCookbookSwitchToRoute(OFCookbookRecipeContext *context, OFCookbookRoute route) {
+void OFCookbookSwitchToRoute(OFCookbookPageContext *context, OFCookbookRoute route) {
     OFCookbookController *controller = (__bridge OFCookbookController *)context->runtime;
     [controller switchToRoute:route];
-    [controller enterCurrentRecipe];
+    [controller enterCurrentPage];
 }
 
 void OFCookbookRequestShutdown(void *runtime) {
@@ -290,8 +288,8 @@ static void OFCookbookBootstrapMessage(OFHost *host, const OFBrowserMessage *mes
     OFCookbookController *controller = (__bridge OFCookbookController *)context;
     if (message->kind == OFBrowserMessageInitializeContent) {
         [controller initializeWithMessage:&message->as.initialize];
-        if (controller.recipeHandler && controller.recipeHandler->handle_message) {
-            controller.recipeHandler->handle_message(host, message, context);
+        if (controller.pageHandler && controller.pageHandler->handle_message) {
+            controller.pageHandler->handle_message(host, message, context);
         }
         return;
     }

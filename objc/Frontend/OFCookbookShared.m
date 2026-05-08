@@ -1,12 +1,11 @@
 #import "OFCookbookController.h"
 
-const NSInteger OFCookbookRecipeCount = 6;
+const NSInteger OFCookbookPageCount = 5;
 
 NSString *OFCookbookRouteTitle(OFCookbookRoute route) {
     switch (route) {
         case OFCookbookRouteTableOfContents: return @"Outerframe Cookbook";
-        case OFCookbookRouteAccessibleText: return @"Accessible Text Region";
-        case OFCookbookRouteManualScroll: return @"Manual Scroll View";
+        case OFCookbookRouteTextRegion: return @"Text Region";
         case OFCookbookRouteNestedScroll: return @"Nested Scroll Demo";
         case OFCookbookRouteTimelineRange: return @"Timeline Range Selector";
         case OFCookbookRouteGiantPage: return @"Giant Page With Animations";
@@ -17,11 +16,9 @@ NSString *OFCookbookRouteTitle(OFCookbookRoute route) {
 NSString *OFCookbookRouteDescription(OFCookbookRoute route) {
     switch (route) {
         case OFCookbookRouteTableOfContents:
-            return @"Choose a cookbook entry.";
-        case OFCookbookRouteAccessibleText:
+            return @"Choose a page.";
+        case OFCookbookRouteTextRegion:
             return @"A scrollable text region with selection, copy, and accessibility.";
-        case OFCookbookRouteManualScroll:
-            return @"A manual layer-backed scroll view with a custom scrollbar.";
         case OFCookbookRouteNestedScroll:
             return @"Nested scroll regions with independent hit testing.";
         case OFCookbookRouteTimelineRange:
@@ -35,20 +32,18 @@ NSString *OFCookbookRouteDescription(OFCookbookRoute route) {
 
 OFCookbookRoute OFCookbookRouteAtIndex(NSInteger index) {
     switch (index) {
-        case 0: return OFCookbookRouteAccessibleText;
-        case 1: return OFCookbookRouteManualScroll;
-        case 2: return OFCookbookRouteNestedScroll;
-        case 3: return OFCookbookRouteTimelineRange;
-        case 4: return OFCookbookRouteGiantPage;
+        case 0: return OFCookbookRouteTextRegion;
+        case 1: return OFCookbookRouteNestedScroll;
+        case 2: return OFCookbookRouteTimelineRange;
+        case 3: return OFCookbookRouteGiantPage;
         default: return OFCookbookRouteNCube;
     }
 }
 
-const OFCookbookRecipeHandler *OFCookbookRecipeHandlerForRoute(OFCookbookRoute route) {
+const OFCookbookPageHandler *OFCookbookPageHandlerForRoute(OFCookbookRoute route) {
     switch (route) {
         case OFCookbookRouteTableOfContents: return &OFCookbookTableOfContentsHandler;
-        case OFCookbookRouteAccessibleText: return &OFCookbookAccessibleTextRegionHandler;
-        case OFCookbookRouteManualScroll: return &OFCookbookManualScrollViewHandler;
+        case OFCookbookRouteTextRegion: return &OFCookbookTextRegionHandler;
         case OFCookbookRouteNestedScroll: return &OFCookbookNestedScrollDemoHandler;
         case OFCookbookRouteTimelineRange: return &OFCookbookTimelineRangeSelectorHandler;
         case OFCookbookRouteGiantPage: return &OFCookbookGiantPageWithAnimationsHandler;
@@ -83,13 +78,13 @@ CALayer *OFRoundedLayer(NSColor *fill, NSColor *stroke, CGFloat radius) {
     return layer;
 }
 
-void OFCookbookAddAccessibilityLabel(OFCookbookRecipeContext *context, NSString *label, CGRect frame, OFAccessibilityRole role) {
+void OFCookbookAddAccessibilityLabel(OFCookbookPageContext *context, NSString *label, CGRect frame, OFAccessibilityRole role) {
     [context->accessibility_labels addObject:label ?: @""];
     [context->accessibility_frames addObject:[NSValue valueWithRect:frame]];
     [context->accessibility_roles addObject:@(role)];
 }
 
-CATextLayer *OFCookbookAddText(OFCookbookRecipeContext *context, NSString *text, CGFloat font_size, NSFontWeight weight, NSColor *color, CGRect frame) {
+CATextLayer *OFCookbookAddText(OFCookbookPageContext *context, NSString *text, CGFloat font_size, NSFontWeight weight, NSColor *color, CGRect frame) {
     CATextLayer *layer = OFTextLayer(text, [NSFont systemFontOfSize:font_size weight:weight], color, font_size);
     layer.frame = frame;
     [context->page_layer addSublayer:layer];
@@ -121,13 +116,13 @@ static NSColor *OFCookbookScrollbarTrackColor(NSAppearance *appearance) {
     return track;
 }
 
-void OFCookbookAddScrollbarForContentHeight(OFCookbookRecipeContext *context, CGFloat content_height, CGFloat viewport_height, CGFloat offset) {
+void OFCookbookAddScrollbarForContentHeight(OFCookbookPageContext *context, CGFloat content_height, CGFloat viewport_height, CGFloat offset) {
     CGSize viewport_size = context->current_size;
     viewport_size.height = viewport_height;
     OFCookbookAddScrollbarInLayer(context, context->page_layer, viewport_size, content_height, offset, false);
 }
 
-void OFCookbookAddScrollbarInLayer(OFCookbookRecipeContext *context, CALayer *layer, CGSize viewport_size, CGFloat content_height, CGFloat offset, bool bottom_origin) {
+void OFCookbookAddScrollbarInLayer(OFCookbookPageContext *context, CALayer *layer, CGSize viewport_size, CGFloat content_height, CGFloat offset, bool bottom_origin) {
     CGFloat width = 8;
     CGFloat inset = 4;
     CGFloat track_height = MAX(0, viewport_size.height - inset * 2);
@@ -167,14 +162,14 @@ void OFCookbookAddScrollbarInLayer(OFCookbookRecipeContext *context, CALayer *la
     [track addSublayer:knob];
 }
 
-CGPoint OFCookbookViewportPointFromRootPoint(OFCookbookRecipeContext *context, CGPoint root_point) {
+CGPoint OFCookbookViewportPointFromRootPoint(OFCookbookPageContext *context, CGPoint root_point) {
     if (!context->root_layer || !context->page_layer) {
         return root_point;
     }
     return [context->root_layer convertPoint:root_point toLayer:context->page_layer];
 }
 
-void OFCookbookRenderRecipeFrame(OFCookbookRecipeContext *context, void (*render)(OFCookbookRecipeContext *context)) {
+void OFCookbookRenderPageFrame(OFCookbookPageContext *context, void (*render)(OFCookbookPageContext *context)) {
     if (!context->root_layer || !render) {
         return;
     }
@@ -205,20 +200,20 @@ void OFCookbookRenderRecipeFrame(OFCookbookRecipeContext *context, void (*render
     [CATransaction commit];
 }
 
-void OFCookbookUpdateRoutePageMetadata(OFCookbookRecipeContext *context) {
+void OFCookbookUpdateRoutePageMetadata(OFCookbookPageContext *context) {
     if (!context->host) {
         return;
     }
     OFHostUpdatePageMetadata(context->host, OFCookbookRouteTitle(context->route).UTF8String, NULL, 0, 0, 0);
 }
 
-void OFCookbookUpdatePasteboardCapabilities(OFCookbookRecipeContext *context, NSString *selected_text) {
+void OFCookbookUpdatePasteboardCapabilities(OFCookbookPageContext *context, NSString *selected_text) {
     const char *types[] = { "public.utf8-plain-text" };
     BOOL can_copy = selected_text.length > 0;
     OFHostSetPasteboardCapabilities(context->host, can_copy, false, can_copy ? types : NULL, can_copy ? 1 : 0);
 }
 
-void OFCookbookSendCopySelectedPasteboardResponse(OFCookbookRecipeContext *context, OFUUID request_id, NSString *selected_text) {
+void OFCookbookSendCopySelectedPasteboardResponse(OFCookbookPageContext *context, OFUUID request_id, NSString *selected_text) {
     if (selected_text.length == 0) {
         OFHostSendCopySelectedPasteboardResponse(context->host, request_id, NULL, 0);
         return;

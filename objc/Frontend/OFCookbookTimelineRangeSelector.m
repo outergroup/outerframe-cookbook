@@ -21,11 +21,11 @@ static CGRect OFTimelineChartFrame(CGSize currentSize) {
                       OFTimelineChartHeight);
 }
 
-static void OFCookbookTimelineRangeSelectorMouseMoved(OFCookbookRecipeContext *context, CGPoint point);
-static void OFCookbookTimelineRangeSelectorMouseDown(OFCookbookRecipeContext *context, CGPoint point, uint32_t click_count);
-static void OFCookbookTimelineRangeSelectorMouseDragged(OFCookbookRecipeContext *context, CGPoint point);
-static void OFCookbookTimelineRangeSelectorMouseUp(OFCookbookRecipeContext *context, CGPoint point);
-static void OFCookbookTimelineRangeSelectorRenderFrame(OFCookbookRecipeContext *context);
+static void OFCookbookTimelineRangeSelectorMouseMoved(OFCookbookPageContext *context, CGPoint point);
+static void OFCookbookTimelineRangeSelectorMouseDown(OFCookbookPageContext *context, CGPoint point, uint32_t click_count);
+static void OFCookbookTimelineRangeSelectorMouseDragged(OFCookbookPageContext *context, CGPoint point);
+static void OFCookbookTimelineRangeSelectorMouseUp(OFCookbookPageContext *context, CGPoint point);
+static void OFCookbookTimelineRangeSelectorRenderFrame(OFCookbookPageContext *context);
 static void OFCookbookTimelineRangeSelectorEnterRoute(void *runtime);
 static void OFCookbookTimelineRangeSelectorLeaveRoute(void *runtime);
 static void OFCookbookTimelineRangeSelectorHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime);
@@ -78,12 +78,12 @@ static OFCookbookTimelineRangeSelectorState *OFCookbookTimelineRangeSelectorStat
     return state;
 }
 
-static OFCookbookTimelineRangeSelectorState *OFCookbookTimelineRangeSelectorStateForContext(OFCookbookRecipeContext *context) {
-    return (__bridge OFCookbookTimelineRangeSelectorState *)context->recipe_state;
+static OFCookbookTimelineRangeSelectorState *OFCookbookTimelineRangeSelectorStateForContext(OFCookbookPageContext *context) {
+    return (__bridge OFCookbookTimelineRangeSelectorState *)context->page_state;
 }
 
-static void OFCookbookTimelineRangeSelectorApplyStateToContext(OFCookbookRecipeContext *context, OFCookbookTimelineRangeSelectorState *state) {
-    context->recipe_state = (__bridge void *)state;
+static void OFCookbookTimelineRangeSelectorApplyStateToContext(OFCookbookPageContext *context, OFCookbookTimelineRangeSelectorState *state) {
+    context->page_state = (__bridge void *)state;
     context->page_layer = state.pageLayer;
     context->accessibility_labels = state.accessibilityLabels;
     context->accessibility_frames = state.accessibilityFrames;
@@ -107,7 +107,7 @@ static CGFloat OFTimelineIntegralFrom(CGFloat start, CGFloat end) {
     return sum * delta;
 }
 
-void OFCookbookRenderTimelineRangeSelector(OFCookbookRecipeContext *context) {
+void OFCookbookRenderTimelineRangeSelector(OFCookbookPageContext *context) {
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForContext(context);
     CGRect cardFrame = OFTimelineCardFrame(context->current_size);
     CALayer *card = OFRoundedLayer(NSColor.textBackgroundColor, NSColor.separatorColor, 14);
@@ -239,7 +239,7 @@ void OFCookbookRenderTimelineRangeSelector(OFCookbookRecipeContext *context) {
     OFCookbookAddAccessibilityLabel(context, rangeText, chart, OFAccessibilityRoleImage);
 }
 
-void OFCookbookTimelineRangeMouseDown(OFCookbookRecipeContext *context, CGPoint point, bool *needs_render) {
+void OFCookbookTimelineRangeMouseDown(OFCookbookPageContext *context, CGPoint point, bool *needs_render) {
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForContext(context);
     CGRect chart = OFTimelineChartFrame(context->current_size);
     if (!CGRectContainsPoint(chart, point)) {
@@ -278,7 +278,7 @@ void OFCookbookTimelineRangeMouseDown(OFCookbookRecipeContext *context, CGPoint 
     *needs_render = true;
 }
 
-void OFCookbookTimelineRangeMouseDragged(OFCookbookRecipeContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render) {
+void OFCookbookTimelineRangeMouseDragged(OFCookbookPageContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render) {
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForContext(context);
     if (state.dragOperation == 0) {
         return;
@@ -305,7 +305,7 @@ void OFCookbookTimelineRangeMouseDragged(OFCookbookRecipeContext *context, CGPoi
     OFCookbookTimelineRangeMouseMoved(context, point, cursor, needs_render);
 }
 
-void OFCookbookTimelineRangeMouseUp(OFCookbookRecipeContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render) {
+void OFCookbookTimelineRangeMouseUp(OFCookbookPageContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render) {
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForContext(context);
     if (state.dragOperation == 1 && !state.creationDidMove) {
         state.hasSelection = false;
@@ -316,7 +316,7 @@ void OFCookbookTimelineRangeMouseUp(OFCookbookRecipeContext *context, CGPoint po
     OFCookbookTimelineRangeMouseMoved(context, point, cursor, needs_render);
 }
 
-void OFCookbookTimelineRangeMouseMoved(OFCookbookRecipeContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render) {
+void OFCookbookTimelineRangeMouseMoved(OFCookbookPageContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render) {
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForContext(context);
     CGRect chart = OFTimelineChartFrame(context->current_size);
     CGFloat clampedX = OFClamp(point.x - CGRectGetMinX(chart), 0, chart.size.width);
@@ -335,7 +335,7 @@ void OFCookbookTimelineRangeMouseMoved(OFCookbookRecipeContext *context, CGPoint
     *needs_render = true;
 }
 
-static void OFCookbookTimelineRangeSelectorMouseMoved(OFCookbookRecipeContext *context, CGPoint point) {
+static void OFCookbookTimelineRangeSelectorMouseMoved(OFCookbookPageContext *context, CGPoint point) {
     OFCursorType cursor = OFCursorTypeArrow;
     bool needs_render = false;
     OFCookbookTimelineRangeMouseMoved(context, point, &cursor, &needs_render);
@@ -345,7 +345,7 @@ static void OFCookbookTimelineRangeSelectorMouseMoved(OFCookbookRecipeContext *c
     }
 }
 
-static void OFCookbookTimelineRangeSelectorMouseDown(OFCookbookRecipeContext *context, CGPoint point, uint32_t click_count) {
+static void OFCookbookTimelineRangeSelectorMouseDown(OFCookbookPageContext *context, CGPoint point, uint32_t click_count) {
     (void)click_count;
     bool needs_render = false;
     OFCookbookTimelineRangeMouseDown(context, point, &needs_render);
@@ -354,7 +354,7 @@ static void OFCookbookTimelineRangeSelectorMouseDown(OFCookbookRecipeContext *co
     }
 }
 
-static void OFCookbookTimelineRangeSelectorMouseDragged(OFCookbookRecipeContext *context, CGPoint point) {
+static void OFCookbookTimelineRangeSelectorMouseDragged(OFCookbookPageContext *context, CGPoint point) {
     OFCursorType cursor = OFCursorTypeArrow;
     bool needs_render = false;
     OFCookbookTimelineRangeMouseDragged(context, point, &cursor, &needs_render);
@@ -364,7 +364,7 @@ static void OFCookbookTimelineRangeSelectorMouseDragged(OFCookbookRecipeContext 
     }
 }
 
-static void OFCookbookTimelineRangeSelectorMouseUp(OFCookbookRecipeContext *context, CGPoint point) {
+static void OFCookbookTimelineRangeSelectorMouseUp(OFCookbookPageContext *context, CGPoint point) {
     OFCursorType cursor = OFCursorTypeArrow;
     bool needs_render = false;
     OFCookbookTimelineRangeMouseUp(context, point, &cursor, &needs_render);
@@ -374,14 +374,14 @@ static void OFCookbookTimelineRangeSelectorMouseUp(OFCookbookRecipeContext *cont
     }
 }
 
-static void OFCookbookTimelineRangeSelectorRenderFrame(OFCookbookRecipeContext *context) {
-    OFCookbookRenderRecipeFrame(context, OFCookbookRenderTimelineRangeSelector);
+static void OFCookbookTimelineRangeSelectorRenderFrame(OFCookbookPageContext *context) {
+    OFCookbookRenderPageFrame(context, OFCookbookRenderTimelineRangeSelector);
     OFCookbookTimelineRangeSelectorStateForContext(context).pageLayer = context->page_layer;
     OFCookbookUpdateRoutePageMetadata(context);
     OFCookbookUpdatePasteboardCapabilities(context, nil);
 }
 
-static bool OFCookbookTimelineRangeSelectorHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *message) {
+static bool OFCookbookTimelineRangeSelectorHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *message) {
     switch (message->kind) {
         case OFBrowserMessageInitializeContent: {
             OFHostConfigureFromInitialize(context->host, &message->as.initialize);
@@ -450,7 +450,7 @@ static bool OFCookbookTimelineRangeSelectorHandleBrowserMessage(OFCookbookRecipe
     }
 }
 
-const OFCookbookRecipeHandler OFCookbookTimelineRangeSelectorHandler = {
+const OFCookbookPageHandler OFCookbookTimelineRangeSelectorHandler = {
     .handle_message = OFCookbookTimelineRangeSelectorHandleMessage,
     .enter_route = OFCookbookTimelineRangeSelectorEnterRoute,
     .leave_route = OFCookbookTimelineRangeSelectorLeaveRoute,
@@ -458,7 +458,7 @@ const OFCookbookRecipeHandler OFCookbookTimelineRangeSelectorHandler = {
 
 static void OFCookbookTimelineRangeSelectorEnterRoute(void *runtime) {
     OFCookbookTimelineRangeSelectorStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookTimelineRangeSelectorState new];
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForRuntime(runtime);
     OFCookbookTimelineRangeSelectorApplyStateToContext(context, state);
     OFCookbookTimelineRangeSelectorRenderFrame(context);
@@ -469,15 +469,15 @@ static void OFCookbookTimelineRangeSelectorLeaveRoute(void *runtime) {
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStates()[key];
     [state.pageLayer removeFromSuperlayer];
     state.pageLayer = nil;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     context->page_layer = nil;
-    context->recipe_state = NULL;
+    context->page_state = NULL;
     [OFCookbookTimelineRangeSelectorStates() removeObjectForKey:key];
 }
 
 static void OFCookbookTimelineRangeSelectorHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
     (void)host;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookTimelineRangeSelectorState *state = OFCookbookTimelineRangeSelectorStateForRuntime(runtime);
     OFCookbookTimelineRangeSelectorApplyStateToContext(context, state);
     OFCookbookTimelineRangeSelectorHandleBrowserMessage(context, message);

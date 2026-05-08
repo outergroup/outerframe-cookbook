@@ -47,7 +47,7 @@ private final class TextKitDisplayLayer: CALayer {
 }
 
 @MainActor
-@objc final class AccessibleTextRegionContentController: NSObject, CookbookPageController {
+@objc final class TextRegionContentController: NSObject, CookbookPageController {
     private let appConnection: OuterframeHost
 
     private struct Layers {
@@ -74,7 +74,7 @@ private final class TextKitDisplayLayer: CALayer {
 
     private let scrollbarWidth: CGFloat = 8
     private let scrollbarInset: CGFloat = 4
-    private var scrollbarController: ScrollbarController<AccessibleTextRegionContentController>?
+    private var scrollbarController: ScrollbarController<TextRegionContentController>?
 
     private let pageInset: CGFloat = 18
     private let headerHeight: CGFloat = 74
@@ -110,7 +110,7 @@ private final class TextKitDisplayLayer: CALayer {
         let title = makeTextLayer(font: .systemFont(ofSize: 22, weight: .semibold),
                                   fontSize: 22,
                                   color: .labelColor)
-        title.string = "Accessible Text Region"
+        title.string = "Text Region"
         root.addSublayer(title)
 
         let subtitle = makeTextLayer(font: .systemFont(ofSize: 14, weight: .regular),
@@ -153,7 +153,7 @@ private final class TextKitDisplayLayer: CALayer {
                         selectionLayer: selectionLayer,
                         textLayer: textLayer)
 
-        scrollbarController = ScrollbarController<AccessibleTextRegionContentController>(appConnection: appConnection,
+        scrollbarController = ScrollbarController<TextRegionContentController>(appConnection: appConnection,
                                                                                          viewportLayer: viewport,
                                                                                          appearance: NSAppearance.currentDrawing(),
                                                                                          width: scrollbarWidth,
@@ -295,7 +295,7 @@ private final class TextKitDisplayLayer: CALayer {
         let titleNode = OuterframeAccessibilityNode(identifier: 1,
                                                     role: .staticText,
                                                     frame: accessibilityFrame(fromVisualRootFrame: layers.titleLayer.frame),
-                                                    label: "Accessible Text Region")
+                                                    label: "Text Region")
         let textNode = OuterframeAccessibilityNode(identifier: 2,
                                                    role: .container,
                                                    frame: accessibilityFrame(fromVisualRootFrame: textRegionFrame()),
@@ -306,7 +306,7 @@ private final class TextKitDisplayLayer: CALayer {
         let rootNode = OuterframeAccessibilityNode(identifier: 0,
                                                    role: .container,
                                                    frame: layers.rootLayer.frame,
-                                                   label: "Accessible Text Region",
+                                                   label: "Text Region",
                                                    children: [titleNode, textNode])
         return OuterframeAccessibilitySnapshot(rootNodes: [rootNode]).serializedData()
     }
@@ -661,7 +661,7 @@ private final class TextKitDisplayLayer: CALayer {
 
     private func updateScrollbarLayout() {
         guard let layers else { return }
-        let metrics = ScrollbarController<AccessibleTextRegionContentController>.Metrics(viewportSize: layers.viewportLayer.bounds.size,
+        let metrics = ScrollbarController<TextRegionContentController>.Metrics(viewportSize: layers.viewportLayer.bounds.size,
                                                                                          contentHeight: contentHeight(),
                                                                                          scrollOffset: scrollOffset)
         scrollbarController?.updateLayout(metrics: metrics)
@@ -709,13 +709,13 @@ private final class TextKitDisplayLayer: CALayer {
         captionParagraph.paragraphSpacing = 18
 
         let result = NSMutableAttributedString()
-        result.append(NSAttributedString(string: "Lorem Ipsum, Accessible and Copyable\n",
+        result.append(NSAttributedString(string: "Lorem Ipsum, Selectable and Copyable\n",
                                          attributes: [
                                             .font: titleFont,
                                             .foregroundColor: NSColor.labelColor,
                                             .paragraphStyle: titleParagraph
                                          ]))
-        result.append(NSAttributedString(string: "This recipe keeps text layout in TextKit 2 while the surrounding surface stays layer-backed. Drag through the paragraphs to highlight text, then copy it with the browser or system copy command.\n",
+        result.append(NSAttributedString(string: "This page keeps text layout in TextKit 2 while the surrounding surface stays layer-backed. Drag through the paragraphs to highlight text, then copy it with the browser or system copy command.\n",
                                          attributes: [
                                             .font: captionFont,
                                             .foregroundColor: NSColor.secondaryLabelColor,
@@ -754,7 +754,7 @@ private final class TextKitDisplayLayer: CALayer {
     }
 }
 
-extension AccessibleTextRegionContentController: ScrollbarControllerDelegate {
+extension TextRegionContentController: ScrollbarControllerDelegate {
     func scrollbarDidChangeScrollOffset(_ offset: CGFloat) {
         setScrollOffset(offset)
     }

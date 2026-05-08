@@ -2,16 +2,16 @@
 
 #import <Metal/Metal.h>
 
-static void OFCookbookSetupMetalIfNeeded(OFCookbookRecipeContext *context);
+static void OFCookbookSetupMetalIfNeeded(OFCookbookPageContext *context);
 static OFNCubeUniforms OFCookbookMakeNCubeUniformsAtTime(float time, CGSize drawable_size);
 static void OFCookbookRotateNCubeVector(const float *vector, float time, float *output);
-static void OFCookbookNCubeRenderFrame(OFCookbookRecipeContext *context);
+static void OFCookbookNCubeRenderFrame(OFCookbookPageContext *context);
 static void OFCookbookNCubeEnterRoute(void *runtime);
 static void OFCookbookNCubeLeaveRoute(void *runtime);
 static void OFCookbookNCubeHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime);
 static void OFCookbookNCubeDisplayLink(OFHost *host, double target_timestamp, void *context);
-static void OFCookbookNCubeStartDisplayLink(OFCookbookRecipeContext *context);
-static void OFCookbookNCubeStopDisplayLink(OFCookbookRecipeContext *context);
+static void OFCookbookNCubeStartDisplayLink(OFCookbookPageContext *context);
+static void OFCookbookNCubeStopDisplayLink(OFCookbookPageContext *context);
 
 @interface OFCookbookNCubeState : NSObject
 @property(nonatomic, strong) id<MTLDevice> device;
@@ -60,19 +60,19 @@ static OFCookbookNCubeState *OFCookbookNCubeStateForRuntime(void *runtime) {
     return state;
 }
 
-static OFCookbookNCubeState *OFCookbookNCubeStateForContext(OFCookbookRecipeContext *context) {
-    return (__bridge OFCookbookNCubeState *)context->recipe_state;
+static OFCookbookNCubeState *OFCookbookNCubeStateForContext(OFCookbookPageContext *context) {
+    return (__bridge OFCookbookNCubeState *)context->page_state;
 }
 
-static void OFCookbookNCubeApplyStateToContext(OFCookbookRecipeContext *context, OFCookbookNCubeState *state) {
-    context->recipe_state = (__bridge void *)state;
+static void OFCookbookNCubeApplyStateToContext(OFCookbookPageContext *context, OFCookbookNCubeState *state) {
+    context->page_state = (__bridge void *)state;
     context->page_layer = state.pageLayer;
     context->accessibility_labels = state.accessibilityLabels;
     context->accessibility_frames = state.accessibilityFrames;
     context->accessibility_roles = state.accessibilityRoles;
 }
 
-void OFCookbookRenderNCube(OFCookbookRecipeContext *context) {
+void OFCookbookRenderNCube(OFCookbookPageContext *context) {
     OFCookbookNCubeState *state = OFCookbookNCubeStateForContext(context);
     state.metalLayer = nil;
     OFCookbookSetupMetalIfNeeded(context);
@@ -119,7 +119,7 @@ void OFCookbookRenderNCube(OFCookbookRecipeContext *context) {
     OFCookbookAddAccessibilityLabel(context, @"Rotating 5D cube face projection", canvas, OFAccessibilityRoleImage);
 }
 
-static void OFCookbookSetupMetalIfNeeded(OFCookbookRecipeContext *context) {
+static void OFCookbookSetupMetalIfNeeded(OFCookbookPageContext *context) {
     OFCookbookNCubeState *state = OFCookbookNCubeStateForContext(context);
     if (state.device || state.setupError.length > 0) {
         return;
@@ -170,7 +170,7 @@ static void OFCookbookSetupMetalIfNeeded(OFCookbookRecipeContext *context) {
     state.setupError = nil;
 }
 
-void OFCookbookRenderNCubeFrameAtTimestamp(OFCookbookRecipeContext *context, CFTimeInterval targetTimestamp) {
+void OFCookbookRenderNCubeFrameAtTimestamp(OFCookbookPageContext *context, CFTimeInterval targetTimestamp) {
     OFCookbookNCubeState *state = OFCookbookNCubeStateForContext(context);
     CAMetalLayer *metalLayer = state.metalLayer;
     if (!metalLayer || !state.commandQueue || !state.pipelineState ||
@@ -250,14 +250,14 @@ static void OFCookbookRotateNCubeVector(const float *vector, float time, float *
     }
 }
 
-static void OFCookbookNCubeRenderFrame(OFCookbookRecipeContext *context) {
-    OFCookbookRenderRecipeFrame(context, OFCookbookRenderNCube);
+static void OFCookbookNCubeRenderFrame(OFCookbookPageContext *context) {
+    OFCookbookRenderPageFrame(context, OFCookbookRenderNCube);
     OFCookbookNCubeStateForContext(context).pageLayer = context->page_layer;
     OFCookbookUpdateRoutePageMetadata(context);
     OFCookbookUpdatePasteboardCapabilities(context, nil);
 }
 
-static void OFCookbookNCubeStartDisplayLink(OFCookbookRecipeContext *context) {
+static void OFCookbookNCubeStartDisplayLink(OFCookbookPageContext *context) {
     if (!context->host || !context->runtime) {
         return;
     }
@@ -269,7 +269,7 @@ static void OFCookbookNCubeStartDisplayLink(OFCookbookRecipeContext *context) {
     state.hasDisplayLink = YES;
 }
 
-static void OFCookbookNCubeStopDisplayLink(OFCookbookRecipeContext *context) {
+static void OFCookbookNCubeStopDisplayLink(OFCookbookPageContext *context) {
     if (!context->host || !context->runtime) {
         return;
     }
@@ -282,7 +282,7 @@ static void OFCookbookNCubeStopDisplayLink(OFCookbookRecipeContext *context) {
     state.displayLinkID = (OFUUID){0};
 }
 
-static bool OFCookbookNCubeHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *message) {
+static bool OFCookbookNCubeHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *message) {
     switch (message->kind) {
         case OFBrowserMessageInitializeContent: {
             OFHostConfigureFromInitialize(context->host, &message->as.initialize);
@@ -338,7 +338,7 @@ static bool OFCookbookNCubeHandleBrowserMessage(OFCookbookRecipeContext *context
     }
 }
 
-const OFCookbookRecipeHandler OFCookbookNCubeHandler = {
+const OFCookbookPageHandler OFCookbookNCubeHandler = {
     .handle_message = OFCookbookNCubeHandleMessage,
     .enter_route = OFCookbookNCubeEnterRoute,
     .leave_route = OFCookbookNCubeLeaveRoute,
@@ -346,7 +346,7 @@ const OFCookbookRecipeHandler OFCookbookNCubeHandler = {
 
 static void OFCookbookNCubeEnterRoute(void *runtime) {
     OFCookbookNCubeStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookNCubeState new];
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookNCubeState *state = OFCookbookNCubeStateForRuntime(runtime);
     OFCookbookNCubeApplyStateToContext(context, state);
     OFCookbookNCubeRenderFrame(context);
@@ -354,7 +354,7 @@ static void OFCookbookNCubeEnterRoute(void *runtime) {
 }
 
 static void OFCookbookNCubeLeaveRoute(void *runtime) {
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     NSValue *key = [NSValue valueWithPointer:runtime];
     OFCookbookNCubeState *state = OFCookbookNCubeStates()[key];
     OFCookbookNCubeApplyStateToContext(context, state);
@@ -362,13 +362,13 @@ static void OFCookbookNCubeLeaveRoute(void *runtime) {
     [state.pageLayer removeFromSuperlayer];
     state.pageLayer = nil;
     context->page_layer = nil;
-    context->recipe_state = NULL;
+    context->page_state = NULL;
     [OFCookbookNCubeStates() removeObjectForKey:key];
 }
 
 static void OFCookbookNCubeHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
     (void)host;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookNCubeState *state = OFCookbookNCubeStateForRuntime(runtime);
     OFCookbookNCubeApplyStateToContext(context, state);
     OFCookbookNCubeHandleBrowserMessage(context, message);
@@ -377,8 +377,8 @@ static void OFCookbookNCubeHandleMessage(OFHost *host, const OFBrowserMessage *m
 
 static void OFCookbookNCubeDisplayLink(OFHost *host, double target_timestamp, void *context) {
     (void)host;
-    OFCookbookRecipeContext *recipe_context = OFCookbookGetRecipeContext(context);
+    OFCookbookPageContext *page_context = OFCookbookGetPageContext(context);
     OFCookbookNCubeState *state = OFCookbookNCubeStateForRuntime(context);
-    OFCookbookNCubeApplyStateToContext(recipe_context, state);
-    OFCookbookRenderNCubeFrameAtTimestamp(recipe_context, target_timestamp);
+    OFCookbookNCubeApplyStateToContext(page_context, state);
+    OFCookbookRenderNCubeFrameAtTimestamp(page_context, target_timestamp);
 }

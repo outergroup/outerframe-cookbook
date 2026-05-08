@@ -1,7 +1,7 @@
 #import "OFCookbookController.h"
 
-static void OFCookbookNestedScrollDemoScrollEvent(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point);
-static void OFCookbookNestedScrollDemoRenderFrame(OFCookbookRecipeContext *context);
+static void OFCookbookNestedScrollDemoScrollEvent(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point);
+static void OFCookbookNestedScrollDemoRenderFrame(OFCookbookPageContext *context);
 static void OFCookbookNestedScrollDemoEnterRoute(void *runtime);
 static void OFCookbookNestedScrollDemoLeaveRoute(void *runtime);
 static void OFCookbookNestedScrollDemoHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime);
@@ -48,19 +48,19 @@ static OFCookbookNestedScrollDemoState *OFCookbookNestedScrollDemoStateForRuntim
     return state;
 }
 
-static OFCookbookNestedScrollDemoState *OFCookbookNestedScrollDemoStateForContext(OFCookbookRecipeContext *context) {
-    return (__bridge OFCookbookNestedScrollDemoState *)context->recipe_state;
+static OFCookbookNestedScrollDemoState *OFCookbookNestedScrollDemoStateForContext(OFCookbookPageContext *context) {
+    return (__bridge OFCookbookNestedScrollDemoState *)context->page_state;
 }
 
-static void OFCookbookNestedScrollDemoApplyStateToContext(OFCookbookRecipeContext *context, OFCookbookNestedScrollDemoState *state) {
-    context->recipe_state = (__bridge void *)state;
+static void OFCookbookNestedScrollDemoApplyStateToContext(OFCookbookPageContext *context, OFCookbookNestedScrollDemoState *state) {
+    context->page_state = (__bridge void *)state;
     context->page_layer = state.pageLayer;
     context->accessibility_labels = state.accessibilityLabels;
     context->accessibility_frames = state.accessibilityFrames;
     context->accessibility_roles = state.accessibilityRoles;
 }
 
-void OFCookbookRenderNestedScrollDemo(OFCookbookRecipeContext *context) {
+void OFCookbookRenderNestedScrollDemo(OFCookbookPageContext *context) {
     OFCookbookNestedScrollDemoState *state = OFCookbookNestedScrollDemoStateForContext(context);
     [state.hitFrames removeAllObjects];
 
@@ -129,7 +129,7 @@ void OFCookbookRenderNestedScrollDemo(OFCookbookRecipeContext *context) {
     OFCookbookAddScrollbarForContentHeight(context, outerContentHeight, context->current_size.height, state.scrollOffset);
 }
 
-bool OFCookbookNestedScrollDemoScroll(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point) {
+bool OFCookbookNestedScrollDemoScroll(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point) {
     OFCookbookNestedScrollDemoState *state = OFCookbookNestedScrollDemoStateForContext(context);
     for (NSValue *frameValue in state.hitFrames) {
         if (CGRectContainsPoint(frameValue.rectValue, point)) {
@@ -140,7 +140,7 @@ bool OFCookbookNestedScrollDemoScroll(OFCookbookRecipeContext *context, CGFloat 
     return false;
 }
 
-static void OFCookbookNestedScrollDemoScrollEvent(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point) {
+static void OFCookbookNestedScrollDemoScrollEvent(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point) {
     if (OFCookbookNestedScrollDemoScroll(context, adjusted_delta, point)) {
         OFCookbookNestedScrollDemoRenderFrame(context);
         return;
@@ -150,14 +150,14 @@ static void OFCookbookNestedScrollDemoScrollEvent(OFCookbookRecipeContext *conte
     OFCookbookNestedScrollDemoRenderFrame(context);
 }
 
-static void OFCookbookNestedScrollDemoRenderFrame(OFCookbookRecipeContext *context) {
-    OFCookbookRenderRecipeFrame(context, OFCookbookRenderNestedScrollDemo);
+static void OFCookbookNestedScrollDemoRenderFrame(OFCookbookPageContext *context) {
+    OFCookbookRenderPageFrame(context, OFCookbookRenderNestedScrollDemo);
     OFCookbookNestedScrollDemoStateForContext(context).pageLayer = context->page_layer;
     OFCookbookUpdateRoutePageMetadata(context);
     OFCookbookUpdatePasteboardCapabilities(context, nil);
 }
 
-static bool OFCookbookNestedScrollDemoHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *message) {
+static bool OFCookbookNestedScrollDemoHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *message) {
     switch (message->kind) {
         case OFBrowserMessageInitializeContent: {
             OFHostConfigureFromInitialize(context->host, &message->as.initialize);
@@ -214,7 +214,7 @@ static bool OFCookbookNestedScrollDemoHandleBrowserMessage(OFCookbookRecipeConte
     }
 }
 
-const OFCookbookRecipeHandler OFCookbookNestedScrollDemoHandler = {
+const OFCookbookPageHandler OFCookbookNestedScrollDemoHandler = {
     .handle_message = OFCookbookNestedScrollDemoHandleMessage,
     .enter_route = OFCookbookNestedScrollDemoEnterRoute,
     .leave_route = OFCookbookNestedScrollDemoLeaveRoute,
@@ -222,7 +222,7 @@ const OFCookbookRecipeHandler OFCookbookNestedScrollDemoHandler = {
 
 static void OFCookbookNestedScrollDemoEnterRoute(void *runtime) {
     OFCookbookNestedScrollDemoStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookNestedScrollDemoState new];
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookNestedScrollDemoState *state = OFCookbookNestedScrollDemoStateForRuntime(runtime);
     OFCookbookNestedScrollDemoApplyStateToContext(context, state);
     OFCookbookNestedScrollDemoRenderFrame(context);
@@ -233,15 +233,15 @@ static void OFCookbookNestedScrollDemoLeaveRoute(void *runtime) {
     OFCookbookNestedScrollDemoState *state = OFCookbookNestedScrollDemoStates()[key];
     [state.pageLayer removeFromSuperlayer];
     state.pageLayer = nil;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     context->page_layer = nil;
-    context->recipe_state = NULL;
+    context->page_state = NULL;
     [OFCookbookNestedScrollDemoStates() removeObjectForKey:key];
 }
 
 static void OFCookbookNestedScrollDemoHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
     (void)host;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookNestedScrollDemoState *state = OFCookbookNestedScrollDemoStateForRuntime(runtime);
     OFCookbookNestedScrollDemoApplyStateToContext(context, state);
     OFCookbookNestedScrollDemoHandleBrowserMessage(context, message);

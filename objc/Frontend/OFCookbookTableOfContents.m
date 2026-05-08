@@ -1,8 +1,8 @@
 #import "OFCookbookController.h"
 
-static void OFCookbookTableOfContentsMouseMoved(OFCookbookRecipeContext *context, CGPoint point);
-static void OFCookbookTableOfContentsMouseDown(OFCookbookRecipeContext *context, CGPoint point, uint32_t click_count);
-static void OFCookbookTableOfContentsScroll(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point);
+static void OFCookbookTableOfContentsMouseMoved(OFCookbookPageContext *context, CGPoint point);
+static void OFCookbookTableOfContentsMouseDown(OFCookbookPageContext *context, CGPoint point, uint32_t click_count);
+static void OFCookbookTableOfContentsScroll(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point);
 static void OFCookbookTableOfContentsEnterRoute(void *runtime);
 static void OFCookbookTableOfContentsLeaveRoute(void *runtime);
 static void OFCookbookTableOfContentsHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime);
@@ -50,19 +50,19 @@ static OFCookbookTableOfContentsState *OFCookbookTableOfContentsStateForRuntime(
     return state;
 }
 
-static OFCookbookTableOfContentsState *OFCookbookTableOfContentsStateForContext(OFCookbookRecipeContext *context) {
-    return (__bridge OFCookbookTableOfContentsState *)context->recipe_state;
+static OFCookbookTableOfContentsState *OFCookbookTableOfContentsStateForContext(OFCookbookPageContext *context) {
+    return (__bridge OFCookbookTableOfContentsState *)context->page_state;
 }
 
-static void OFCookbookTableOfContentsApplyStateToContext(OFCookbookRecipeContext *context, OFCookbookTableOfContentsState *state) {
-    context->recipe_state = (__bridge void *)state;
+static void OFCookbookTableOfContentsApplyStateToContext(OFCookbookPageContext *context, OFCookbookTableOfContentsState *state) {
+    context->page_state = (__bridge void *)state;
     context->page_layer = state.pageLayer;
     context->accessibility_labels = state.accessibilityLabels;
     context->accessibility_frames = state.accessibilityFrames;
     context->accessibility_roles = state.accessibilityRoles;
 }
 
-void OFCookbookRenderTableOfContents(OFCookbookRecipeContext *context) {
+void OFCookbookRenderTableOfContents(OFCookbookPageContext *context) {
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForContext(context);
     [state.hitFrames removeAllObjects];
     [state.hitRoutes removeAllObjects];
@@ -73,7 +73,7 @@ void OFCookbookRenderTableOfContents(OFCookbookRecipeContext *context) {
     CGFloat rowHeight = 78;
     CGFloat rowGap = 12;
     CGFloat bottomPadding = 56;
-    CGFloat contentHeight = top + 46 + 24 + 28 + OFCookbookRecipeCount * rowHeight + (OFCookbookRecipeCount - 1) * rowGap + bottomPadding;
+    CGFloat contentHeight = top + 46 + 24 + 28 + OFCookbookPageCount * rowHeight + (OFCookbookPageCount - 1) * rowGap + bottomPadding;
     state.scrollOffset = OFClamp(state.scrollOffset, 0, MAX(0, contentHeight - context->current_size.height));
 
     OFCookbookAddText(context,
@@ -83,14 +83,14 @@ void OFCookbookRenderTableOfContents(OFCookbookRecipeContext *context) {
                       NSColor.labelColor,
                       CGRectMake(contentX, top - state.scrollOffset, contentWidth, 38));
     OFCookbookAddText(context,
-                      @"Pick a recipe:",
+                      @"Pick a page:",
                       15,
                       NSFontWeightRegular,
                       NSColor.secondaryLabelColor,
                       CGRectMake(contentX, top + 46 - state.scrollOffset, contentWidth, 24));
 
     CGFloat y = top + 46 + 24 + 28 - state.scrollOffset;
-    for (NSInteger i = 0; i < OFCookbookRecipeCount; i++) {
+    for (NSInteger i = 0; i < OFCookbookPageCount; i++) {
         OFCookbookRoute route = OFCookbookRouteAtIndex(i);
         CGRect rowFrame = CGRectMake(contentX, y, contentWidth, rowHeight);
         CALayer *row = OFRoundedLayer(NSColor.textBackgroundColor, NSColor.separatorColor, 8);
@@ -119,7 +119,7 @@ void OFCookbookRenderTableOfContents(OFCookbookRecipeContext *context) {
     OFCookbookAddScrollbarForContentHeight(context, MAX(contentHeight, context->current_size.height), context->current_size.height, state.scrollOffset);
 }
 
-static void OFCookbookTableOfContentsMouseMoved(OFCookbookRecipeContext *context, CGPoint point) {
+static void OFCookbookTableOfContentsMouseMoved(OFCookbookPageContext *context, CGPoint point) {
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForContext(context);
     OFCursorType cursor = OFCursorTypeArrow;
     for (NSValue *frameValue in state.hitFrames) {
@@ -131,7 +131,7 @@ static void OFCookbookTableOfContentsMouseMoved(OFCookbookRecipeContext *context
     OFHostSetCursor(context->host, cursor);
 }
 
-static void OFCookbookTableOfContentsMouseDown(OFCookbookRecipeContext *context, CGPoint point, uint32_t click_count) {
+static void OFCookbookTableOfContentsMouseDown(OFCookbookPageContext *context, CGPoint point, uint32_t click_count) {
     (void)click_count;
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForContext(context);
     for (NSUInteger i = 0; i < state.hitFrames.count; i++) {
@@ -142,21 +142,21 @@ static void OFCookbookTableOfContentsMouseDown(OFCookbookRecipeContext *context,
     }
 }
 
-static void OFCookbookTableOfContentsRenderFrame(OFCookbookRecipeContext *context) {
-    OFCookbookRenderRecipeFrame(context, OFCookbookRenderTableOfContents);
+static void OFCookbookTableOfContentsRenderFrame(OFCookbookPageContext *context) {
+    OFCookbookRenderPageFrame(context, OFCookbookRenderTableOfContents);
     OFCookbookTableOfContentsStateForContext(context).pageLayer = context->page_layer;
     OFCookbookUpdateRoutePageMetadata(context);
     OFCookbookUpdatePasteboardCapabilities(context, nil);
 }
 
-static void OFCookbookTableOfContentsScroll(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point) {
+static void OFCookbookTableOfContentsScroll(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point) {
     (void)point;
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForContext(context);
     state.scrollOffset = MAX(0, state.scrollOffset + adjusted_delta);
     OFCookbookTableOfContentsRenderFrame(context);
 }
 
-static bool OFCookbookTableOfContentsHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *message) {
+static bool OFCookbookTableOfContentsHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *message) {
     switch (message->kind) {
         case OFBrowserMessageInitializeContent: {
             OFHostConfigureFromInitialize(context->host, &message->as.initialize);
@@ -222,7 +222,7 @@ static bool OFCookbookTableOfContentsHandleBrowserMessage(OFCookbookRecipeContex
     }
 }
 
-const OFCookbookRecipeHandler OFCookbookTableOfContentsHandler = {
+const OFCookbookPageHandler OFCookbookTableOfContentsHandler = {
     .handle_message = OFCookbookTableOfContentsHandleMessage,
     .enter_route = OFCookbookTableOfContentsEnterRoute,
     .leave_route = OFCookbookTableOfContentsLeaveRoute,
@@ -230,7 +230,7 @@ const OFCookbookRecipeHandler OFCookbookTableOfContentsHandler = {
 
 static void OFCookbookTableOfContentsEnterRoute(void *runtime) {
     OFCookbookTableOfContentsStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookTableOfContentsState new];
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForRuntime(runtime);
     OFCookbookTableOfContentsApplyStateToContext(context, state);
     OFCookbookTableOfContentsRenderFrame(context);
@@ -241,15 +241,15 @@ static void OFCookbookTableOfContentsLeaveRoute(void *runtime) {
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStates()[key];
     [state.pageLayer removeFromSuperlayer];
     state.pageLayer = nil;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     context->page_layer = nil;
-    context->recipe_state = NULL;
+    context->page_state = NULL;
     [OFCookbookTableOfContentsStates() removeObjectForKey:key];
 }
 
 static void OFCookbookTableOfContentsHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
     (void)host;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookTableOfContentsState *state = OFCookbookTableOfContentsStateForRuntime(runtime);
     OFCookbookTableOfContentsApplyStateToContext(context, state);
     OFCookbookTableOfContentsHandleBrowserMessage(context, message);

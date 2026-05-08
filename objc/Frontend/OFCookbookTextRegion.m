@@ -1,29 +1,29 @@
 #import "OFCookbookController.h"
 
-static void OFCookbookAddAccessibleSelectionLayersInViewport(OFCookbookRecipeContext *context, CALayer *viewport, CGPoint textInset);
-static CGRect OFCookbookAccessibleViewportFrame(OFCookbookRecipeContext *context);
-static CGRect OFCookbookAccessibleTextPanelFrame(OFCookbookRecipeContext *context);
-static CGRect OFCookbookAccessibleTextAccessibilityFrameFromVisualRootFrame(OFCookbookRecipeContext *context, CGRect frame);
-static NSString *OFCookbookAccessibleTextStringForRange(OFCookbookRecipeContext *context, NSTextRange *range);
-static NSInteger OFCookbookAccessibleTextOffsetFromDocumentStartToLocation(OFCookbookRecipeContext *context, id<NSTextLocation> location);
-static CGFloat OFCookbookAccessibleContentHeightForViewportHeight(OFCookbookRecipeContext *context, CGFloat viewportHeight);
-static void OFCookbookConfigureAccessibleTextContainerForViewportSize(OFCookbookRecipeContext *context, CGSize viewportSize);
-static CGPoint OFCookbookAccessibleTextContainerPointFromPagePoint(OFCookbookRecipeContext *context, CGPoint point);
-static CGRect OFCookbookAccessibleTextContainerInteractionBounds(OFCookbookRecipeContext *context);
-static bool OFCookbookIsPointInAccessibleTextViewport(OFCookbookRecipeContext *context, CGPoint point);
-static void OFCookbookSetAccessibleTextSelection(OFCookbookRecipeContext *context, NSTextSelection *selection);
-static NSRange OFCookbookAccessibleRangeForTextSelection(OFCookbookRecipeContext *context, NSTextSelection *selection);
-static NSTextRange *OFCookbookAccessibleTextRangeForRange(OFCookbookRecipeContext *context, NSRange range);
-static NSTextSelection *OFCookbookAccessibleTextSelectionAtPoint(OFCookbookRecipeContext *context, CGPoint point);
-static NSAttributedString *OFCookbookAttributedTextForAccessibleSelection(OFCookbookRecipeContext *context, NSTextSelection *selection);
-static NSAttributedString *OFCookbookSelectedAccessibleAttributedText(OFCookbookRecipeContext *context);
-static NSInteger OFCookbookAccessibleTextLocationOffsetAtPoint(OFCookbookRecipeContext *context, CGPoint point);
-static void OFCookbookShowContextMenuForAccessibleAttributedText(OFCookbookRecipeContext *context, NSAttributedString *text, CGPoint point);
-static NSTextSelection *OFCookbookAccessibleTextLayoutFragmentSelectionAtTextPoint(OFCookbookRecipeContext *context, CGPoint textPoint);
-static void OFCookbookAccessibleTextRegionRenderFrame(OFCookbookRecipeContext *context);
-static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *browser_message);
+static void OFCookbookAddTextRegionSelectionLayersInViewport(OFCookbookPageContext *context, CALayer *viewport, CGPoint textInset);
+static CGRect OFCookbookTextRegionViewportFrame(OFCookbookPageContext *context);
+static CGRect OFCookbookTextRegionPanelFrame(OFCookbookPageContext *context);
+static CGRect OFCookbookTextRegionAccessibilityFrameFromVisualRootFrame(OFCookbookPageContext *context, CGRect frame);
+static NSString *OFCookbookTextRegionStringForRange(OFCookbookPageContext *context, NSTextRange *range);
+static NSInteger OFCookbookTextRegionOffsetFromDocumentStartToLocation(OFCookbookPageContext *context, id<NSTextLocation> location);
+static CGFloat OFCookbookTextRegionContentHeightForViewportHeight(OFCookbookPageContext *context, CGFloat viewportHeight);
+static void OFCookbookConfigureTextRegionContainerForViewportSize(OFCookbookPageContext *context, CGSize viewportSize);
+static CGPoint OFCookbookTextRegionContainerPointFromPagePoint(OFCookbookPageContext *context, CGPoint point);
+static CGRect OFCookbookTextRegionContainerInteractionBounds(OFCookbookPageContext *context);
+static bool OFCookbookIsPointInTextRegionViewport(OFCookbookPageContext *context, CGPoint point);
+static void OFCookbookSetTextRegionSelection(OFCookbookPageContext *context, NSTextSelection *selection);
+static NSRange OFCookbookTextRegionRangeForTextSelection(OFCookbookPageContext *context, NSTextSelection *selection);
+static NSTextRange *OFCookbookTextRegionTextRangeForRange(OFCookbookPageContext *context, NSRange range);
+static NSTextSelection *OFCookbookTextRegionSelectionAtPoint(OFCookbookPageContext *context, CGPoint point);
+static NSAttributedString *OFCookbookAttributedTextForTextRegionSelection(OFCookbookPageContext *context, NSTextSelection *selection);
+static NSAttributedString *OFCookbookSelectedTextRegionAttributedText(OFCookbookPageContext *context);
+static NSInteger OFCookbookTextRegionLocationOffsetAtPoint(OFCookbookPageContext *context, CGPoint point);
+static void OFCookbookShowContextMenuForTextRegionAttributedText(OFCookbookPageContext *context, NSAttributedString *text, CGPoint point);
+static NSTextSelection *OFCookbookTextRegionLayoutFragmentSelectionAtTextPoint(OFCookbookPageContext *context, CGPoint textPoint);
+static void OFCookbookTextRegionRenderFrame(OFCookbookPageContext *context);
+static bool OFCookbookTextRegionHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *browser_message);
 
-@interface OFCookbookAccessibleTextRegionState : NSObject
+@interface OFCookbookTextRegionState : NSObject
 @property(nonatomic, assign) CGFloat scrollOffset;
 @property(nonatomic, assign) NSRange selectionRange;
 @property(nonatomic, assign) BOOL hasSelectionRange;
@@ -39,7 +39,7 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
 @property(nonatomic, strong) NSMutableArray<NSNumber *> *accessibilityRoles;
 @end
 
-@implementation OFCookbookAccessibleTextRegionState
+@implementation OFCookbookTextRegionState
 - (instancetype)init {
     self = [super init];
     if (self) {
@@ -50,7 +50,7 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
         _textLayoutManager.textContainer = _textContainer;
         _textLayoutManager.usesFontLeading = YES;
         [_contentStorage addTextLayoutManager:_textLayoutManager];
-        _documentText = OFCookbookMakeAccessibleDocumentText();
+        _documentText = OFCookbookMakeTextRegionDocumentText();
         _contentStorage.attributedString = _documentText;
         _dragAnchorSelections = @[];
         _accessibilityLabels = [NSMutableArray array];
@@ -61,8 +61,8 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
 }
 @end
 
-static NSMutableDictionary<NSValue *, OFCookbookAccessibleTextRegionState *> *OFCookbookAccessibleTextRegionStates(void) {
-    static NSMutableDictionary<NSValue *, OFCookbookAccessibleTextRegionState *> *states;
+static NSMutableDictionary<NSValue *, OFCookbookTextRegionState *> *OFCookbookTextRegionStates(void) {
+    static NSMutableDictionary<NSValue *, OFCookbookTextRegionState *> *states;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         states = [NSMutableDictionary dictionary];
@@ -70,30 +70,30 @@ static NSMutableDictionary<NSValue *, OFCookbookAccessibleTextRegionState *> *OF
     return states;
 }
 
-static OFCookbookAccessibleTextRegionState *OFCookbookAccessibleTextRegionStateForRuntime(void *runtime) {
+static OFCookbookTextRegionState *OFCookbookTextRegionStateForRuntime(void *runtime) {
     NSValue *key = [NSValue valueWithPointer:runtime];
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStates()[key];
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStates()[key];
     if (!state) {
-        state = [OFCookbookAccessibleTextRegionState new];
-        OFCookbookAccessibleTextRegionStates()[key] = state;
+        state = [OFCookbookTextRegionState new];
+        OFCookbookTextRegionStates()[key] = state;
     }
     return state;
 }
 
-static OFCookbookAccessibleTextRegionState *OFCookbookAccessibleTextRegionStateForContext(OFCookbookRecipeContext *context) {
-    return (__bridge OFCookbookAccessibleTextRegionState *)context->recipe_state;
+static OFCookbookTextRegionState *OFCookbookTextRegionStateForContext(OFCookbookPageContext *context) {
+    return (__bridge OFCookbookTextRegionState *)context->page_state;
 }
 
-static void OFCookbookAccessibleTextRegionApplyStateToContext(OFCookbookRecipeContext *context, OFCookbookAccessibleTextRegionState *state) {
-    context->recipe_state = (__bridge void *)state;
+static void OFCookbookTextRegionApplyStateToContext(OFCookbookPageContext *context, OFCookbookTextRegionState *state) {
+    context->page_state = (__bridge void *)state;
     context->page_layer = state.pageLayer;
     context->accessibility_labels = state.accessibilityLabels;
     context->accessibility_frames = state.accessibilityFrames;
     context->accessibility_roles = state.accessibilityRoles;
 }
 
-void OFCookbookRenderAccessibleTextRegion(OFCookbookRecipeContext *context) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+void OFCookbookRenderTextRegion(OFCookbookPageContext *context) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     CGFloat pageInset = 18;
     CGFloat headerHeight = 74;
     CGFloat textInsetX = 28;
@@ -101,7 +101,7 @@ void OFCookbookRenderAccessibleTextRegion(OFCookbookRecipeContext *context) {
     CGFloat scrollbarWidth = 8;
     CGFloat scrollbarInset = 4;
     CGFloat contentWidth = MAX(context->current_size.width - pageInset * 2, 240);
-    OFCookbookAddText(context, @"Accessible Text Region", 22, NSFontWeightSemibold, NSColor.labelColor, CGRectMake(pageInset, 18, contentWidth, 28));
+    OFCookbookAddText(context, @"Text Region", 22, NSFontWeightSemibold, NSColor.labelColor, CGRectMake(pageInset, 18, contentWidth, 28));
     OFCookbookAddText(context, @"TextKit 2 layout with scroll, selection, copy, and accessibility.", 14, NSFontWeightRegular, NSColor.secondaryLabelColor, CGRectMake(pageInset, 47, contentWidth, 34));
 
     CGRect panelFrame = CGRectMake(pageInset, headerHeight, contentWidth, MAX(context->current_size.height - headerHeight - pageInset, 180));
@@ -126,7 +126,7 @@ void OFCookbookRenderAccessibleTextRegion(OFCookbookRecipeContext *context) {
     selectionLayer.geometryFlipped = YES;
     selectionLayer.frame = viewport.bounds;
     [viewport addSublayer:selectionLayer];
-    OFCookbookAddAccessibleSelectionLayersInViewport(context, selectionLayer, CGPointMake(textInsetX, textInsetY));
+    OFCookbookAddTextRegionSelectionLayersInViewport(context, selectionLayer, CGPointMake(textInsetX, textInsetY));
 
     OFTextKitDisplayLayer *textLayer = [OFTextKitDisplayLayer layer];
     textLayer.geometryFlipped = YES;
@@ -142,7 +142,7 @@ void OFCookbookRenderAccessibleTextRegion(OFCookbookRecipeContext *context) {
     OFCookbookAddScrollbarInLayer(context, viewport, viewport.bounds.size, contentHeight, state.scrollOffset, true);
 }
 
-NSAttributedString *OFCookbookMakeAccessibleDocumentText(void) {
+NSAttributedString *OFCookbookMakeTextRegionDocumentText(void) {
     NSFont *titleFont = [NSFont systemFontOfSize:20 weight:NSFontWeightSemibold];
     NSFont *bodyFont = [NSFont systemFontOfSize:16 weight:NSFontWeightRegular];
     NSFont *captionFont = [NSFont systemFontOfSize:13 weight:NSFontWeightMedium];
@@ -158,13 +158,13 @@ NSAttributedString *OFCookbookMakeAccessibleDocumentText(void) {
     captionParagraph.paragraphSpacing = 18;
 
     NSMutableAttributedString *result = [NSMutableAttributedString new];
-    [result appendAttributedString:[[NSAttributedString alloc] initWithString:@"Lorem Ipsum, Accessible and Copyable\n"
+    [result appendAttributedString:[[NSAttributedString alloc] initWithString:@"Lorem Ipsum, Selectable and Copyable\n"
                                                                    attributes:@{
         NSFontAttributeName: titleFont,
         NSForegroundColorAttributeName: NSColor.labelColor,
         NSParagraphStyleAttributeName: titleParagraph,
     }]];
-    [result appendAttributedString:[[NSAttributedString alloc] initWithString:@"This recipe keeps text layout in TextKit 2 while the surrounding surface stays layer-backed. Drag through the paragraphs to highlight text, then copy it with the browser or system copy command.\n"
+    [result appendAttributedString:[[NSAttributedString alloc] initWithString:@"This page keeps text layout in TextKit 2 while the surrounding surface stays layer-backed. Drag through the paragraphs to highlight text, then copy it with the browser or system copy command.\n"
                                                                    attributes:@{
         NSFontAttributeName: captionFont,
         NSForegroundColorAttributeName: NSColor.secondaryLabelColor,
@@ -202,12 +202,12 @@ NSAttributedString *OFCookbookMakeAccessibleDocumentText(void) {
     return result;
 }
 
-static void OFCookbookAddAccessibleSelectionLayersInViewport(OFCookbookRecipeContext *context, CALayer *viewport, CGPoint textInset) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static void OFCookbookAddTextRegionSelectionLayersInViewport(OFCookbookPageContext *context, CALayer *viewport, CGPoint textInset) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     if (!state.hasSelectionRange || state.selectionRange.length == 0) {
         return;
     }
-    NSTextRange *textRange = OFCookbookAccessibleTextRangeForRange(context, state.selectionRange);
+    NSTextRange *textRange = OFCookbookTextRegionTextRangeForRange(context, state.selectionRange);
     if (!textRange) {
         return;
     }
@@ -236,7 +236,7 @@ static void OFCookbookAddAccessibleSelectionLayersInViewport(OFCookbookRecipeCon
     }];
 }
 
-static CGRect OFCookbookAccessibleViewportFrame(OFCookbookRecipeContext *context) {
+static CGRect OFCookbookTextRegionViewportFrame(OFCookbookPageContext *context) {
     CGFloat pageInset = 18;
     CGFloat headerHeight = 74;
     CGFloat contentWidth = MAX(context->current_size.width - pageInset * 2, 240);
@@ -244,22 +244,22 @@ static CGRect OFCookbookAccessibleViewportFrame(OFCookbookRecipeContext *context
     return CGRectInset(panelFrame, 1, 1);
 }
 
-static CGRect OFCookbookAccessibleTextPanelFrame(OFCookbookRecipeContext *context) {
+static CGRect OFCookbookTextRegionPanelFrame(OFCookbookPageContext *context) {
     CGFloat pageInset = 18;
     CGFloat headerHeight = 74;
     CGFloat contentWidth = MAX(context->current_size.width - pageInset * 2, 240);
     return CGRectMake(pageInset, headerHeight, contentWidth, MAX(context->current_size.height - headerHeight - pageInset, 180));
 }
 
-static CGRect OFCookbookAccessibleTextAccessibilityFrameFromVisualRootFrame(OFCookbookRecipeContext *context, CGRect frame) {
+static CGRect OFCookbookTextRegionAccessibilityFrameFromVisualRootFrame(OFCookbookPageContext *context, CGRect frame) {
     return CGRectMake(CGRectGetMinX(frame),
                       context->current_size.height - CGRectGetMaxY(frame),
                       frame.size.width,
                       frame.size.height);
 }
 
-static NSString *OFCookbookAccessibleTextStringForRange(OFCookbookRecipeContext *context, NSTextRange *range) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static NSString *OFCookbookTextRegionStringForRange(OFCookbookPageContext *context, NSTextRange *range) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     if (!range) {
         return nil;
     }
@@ -277,17 +277,17 @@ static NSString *OFCookbookAccessibleTextStringForRange(OFCookbookRecipeContext 
     return [state.documentText attributedSubstringFromRange:NSMakeRange((NSUInteger)location, (NSUInteger)length)].string;
 }
 
-static NSInteger OFCookbookAccessibleTextOffsetFromDocumentStartToLocation(OFCookbookRecipeContext *context, id<NSTextLocation> location) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static NSInteger OFCookbookTextRegionOffsetFromDocumentStartToLocation(OFCookbookPageContext *context, id<NSTextLocation> location) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     NSInteger offset = [state.contentStorage offsetFromLocation:state.textLayoutManager.documentRange.location
                                                               toLocation:location];
     return offset == NSNotFound ? 0 : offset;
 }
 
-bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext *context, OFBuffer *outSnapshotData) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGRect viewportFrame = OFCookbookAccessibleViewportFrame(context);
-    OFCookbookConfigureAccessibleTextContainerForViewportSize(context, viewportFrame.size);
+bool OFCookbookWriteTextRegionAccessibilitySnapshot(OFCookbookPageContext *context, OFBuffer *outSnapshotData) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGRect viewportFrame = OFCookbookTextRegionViewportFrame(context);
+    OFCookbookConfigureTextRegionContainerForViewportSize(context, viewportFrame.size);
     [state.textLayoutManager ensureLayoutForRange:state.textLayoutManager.documentRange];
 
     NSMutableArray<NSMutableData *> *retainedCStringData = [NSMutableArray array];
@@ -299,7 +299,7 @@ bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext 
         [retainedCStringData addObject:storage];
         return storage.bytes;
     };
-    NSString *title = @"Accessible Text Region";
+    NSString *title = @"Text Region";
     NSString *textLabel = @"Scrollable selectable text";
     NSString *textHint = @"Select text to copy it.";
     NSString *documentValue = state.documentText.string ?: @"";
@@ -337,7 +337,7 @@ bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext 
             return YES;
         }
 
-        NSString *fragmentText = OFCookbookAccessibleTextStringForRange(context, fragment.rangeInElement);
+        NSString *fragmentText = OFCookbookTextRegionStringForRange(context, fragment.rangeInElement);
         if ([fragmentText stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet].length == 0) {
             return YES;
         }
@@ -355,9 +355,9 @@ bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext 
             fragmentCapacity = newCapacity;
         }
 
-        NSInteger startOffset = OFCookbookAccessibleTextOffsetFromDocumentStartToLocation(context, fragment.rangeInElement.location);
+        NSInteger startOffset = OFCookbookTextRegionOffsetFromDocumentStartToLocation(context, fragment.rangeInElement.location);
         NSInteger safeOffset = MAX(0, MIN(startOffset, (NSInteger)UINT32_MAX - 1000));
-        CGRect visibleFrame = OFCookbookAccessibleTextAccessibilityFrameFromVisualRootFrame(context, CGRectIntersection(rootFrame, viewportBoundsInRoot));
+        CGRect visibleFrame = OFCookbookTextRegionAccessibilityFrameFromVisualRootFrame(context, CGRectIntersection(rootFrame, viewportBoundsInRoot));
         fragmentNodes[fragmentCount] = (OFAccessibilityNode){
             .identifier = (uint32_t)(1000 + safeOffset),
             .role = OFAccessibilityRoleStaticText,
@@ -378,14 +378,14 @@ bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext 
         {
             .identifier = 1,
             .role = OFAccessibilityRoleStaticText,
-            .frame = OFCookbookAccessibleTextAccessibilityFrameFromVisualRootFrame(context, CGRectMake(18, 18, MAX(context->current_size.width - 36, 240), 28)),
+            .frame = OFCookbookTextRegionAccessibilityFrameFromVisualRootFrame(context, CGRectMake(18, 18, MAX(context->current_size.width - 36, 240), 28)),
             .label = titleCString,
             .enabled = true,
         },
         {
             .identifier = 2,
             .role = OFAccessibilityRoleContainer,
-            .frame = OFCookbookAccessibleTextAccessibilityFrameFromVisualRootFrame(context, OFCookbookAccessibleTextPanelFrame(context)),
+            .frame = OFCookbookTextRegionAccessibilityFrameFromVisualRootFrame(context, OFCookbookTextRegionPanelFrame(context)),
             .label = textLabelCString,
             .value = documentValueCString,
             .hint = textHintCString,
@@ -414,14 +414,14 @@ bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext 
     return result;
 }
 
-static CGFloat OFCookbookAccessibleContentHeightForViewportHeight(OFCookbookRecipeContext *context, CGFloat viewportHeight) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static CGFloat OFCookbookTextRegionContentHeightForViewportHeight(OFCookbookPageContext *context, CGFloat viewportHeight) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     [state.textLayoutManager ensureLayoutForRange:state.textLayoutManager.documentRange];
     return MAX(CGRectGetMaxY(state.textLayoutManager.usageBoundsForTextContainer) + 24 * 2, viewportHeight);
 }
 
-static void OFCookbookConfigureAccessibleTextContainerForViewportSize(OFCookbookRecipeContext *context, CGSize viewportSize) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static void OFCookbookConfigureTextRegionContainerForViewportSize(OFCookbookPageContext *context, CGSize viewportSize) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     CGFloat textInsetX = 28;
     CGFloat scrollbarWidth = 8;
     CGFloat scrollbarInset = 4;
@@ -432,31 +432,31 @@ static void OFCookbookConfigureAccessibleTextContainerForViewportSize(OFCookbook
     }
 }
 
-static CGPoint OFCookbookAccessibleTextContainerPointFromPagePoint(OFCookbookRecipeContext *context, CGPoint point) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGRect viewportFrame = OFCookbookAccessibleViewportFrame(context);
+static CGPoint OFCookbookTextRegionContainerPointFromPagePoint(OFCookbookPageContext *context, CGPoint point) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGRect viewportFrame = OFCookbookTextRegionViewportFrame(context);
     return CGPointMake(point.x - CGRectGetMinX(viewportFrame) - 28,
                        point.y - CGRectGetMinY(viewportFrame) + state.scrollOffset - 24);
 }
 
-static CGRect OFCookbookAccessibleTextContainerInteractionBounds(OFCookbookRecipeContext *context) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGFloat contentHeight = OFCookbookAccessibleContentHeightForViewportHeight(context, OFCookbookAccessibleViewportFrame(context).size.height);
+static CGRect OFCookbookTextRegionContainerInteractionBounds(OFCookbookPageContext *context) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGFloat contentHeight = OFCookbookTextRegionContentHeightForViewportHeight(context, OFCookbookTextRegionViewportFrame(context).size.height);
     return CGRectMake(0, 0, MAX(state.textContainer.size.width, 1), MAX(contentHeight - 24 * 2, state.textContainer.size.height));
 }
 
-static bool OFCookbookIsPointInAccessibleTextViewport(OFCookbookRecipeContext *context, CGPoint point) {
-    return CGRectContainsPoint(OFCookbookAccessibleViewportFrame(context), point);
+static bool OFCookbookIsPointInTextRegionViewport(OFCookbookPageContext *context, CGPoint point) {
+    return CGRectContainsPoint(OFCookbookTextRegionViewportFrame(context), point);
 }
 
-bool OFCookbookAccessibleTextIsPointOverText(OFCookbookRecipeContext *context, CGPoint point) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGRect viewportFrame = OFCookbookAccessibleViewportFrame(context);
+bool OFCookbookTextRegionIsPointOverText(OFCookbookPageContext *context, CGPoint point) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGRect viewportFrame = OFCookbookTextRegionViewportFrame(context);
     if (!CGRectContainsPoint(viewportFrame, point)) {
         return NO;
     }
-    OFCookbookConfigureAccessibleTextContainerForViewportSize(context, viewportFrame.size);
-    CGPoint textPoint = OFCookbookAccessibleTextContainerPointFromPagePoint(context, point);
+    OFCookbookConfigureTextRegionContainerForViewportSize(context, viewportFrame.size);
+    CGPoint textPoint = OFCookbookTextRegionContainerPointFromPagePoint(context, point);
     __block BOOL found = NO;
     [state.textLayoutManager enumerateTextSegmentsInRange:state.textLayoutManager.documentRange
                                                               type:NSTextLayoutManagerSegmentTypeStandard
@@ -474,10 +474,10 @@ bool OFCookbookAccessibleTextIsPointOverText(OFCookbookRecipeContext *context, C
     return found;
 }
 
-static void OFCookbookSetAccessibleTextSelection(OFCookbookRecipeContext *context, NSTextSelection *selection) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static void OFCookbookSetTextRegionSelection(OFCookbookPageContext *context, NSTextSelection *selection) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     state.textLayoutManager.textSelections = selection ? @[selection] : @[];
-    NSRange range = OFCookbookAccessibleRangeForTextSelection(context, selection);
+    NSRange range = OFCookbookTextRegionRangeForTextSelection(context, selection);
     state.hasSelectionRange = range.length > 0;
     state.selectionRange = range;
     if (range.length > 0 && NSMaxRange(range) <= state.documentText.length) {
@@ -489,8 +489,8 @@ static void OFCookbookSetAccessibleTextSelection(OFCookbookRecipeContext *contex
     OFHostSendAccessibilityTreeChanged(context->host, OFAccessibilityNotificationSelectedChildrenChanged);
 }
 
-static NSRange OFCookbookAccessibleRangeForTextSelection(OFCookbookRecipeContext *context, NSTextSelection *selection) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static NSRange OFCookbookTextRegionRangeForTextSelection(OFCookbookPageContext *context, NSTextSelection *selection) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     NSTextRange *textRange = selection.textRanges.firstObject;
     if (!textRange) {
         return NSMakeRange(0, 0);
@@ -509,8 +509,8 @@ static NSRange OFCookbookAccessibleRangeForTextSelection(OFCookbookRecipeContext
     return NSMakeRange((NSUInteger)location, (NSUInteger)length);
 }
 
-static NSTextRange *OFCookbookAccessibleTextRangeForRange(OFCookbookRecipeContext *context, NSRange range) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static NSTextRange *OFCookbookTextRegionTextRangeForRange(OFCookbookPageContext *context, NSRange range) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     if (range.length == 0 || NSMaxRange(range) > state.documentText.length) {
         return nil;
     }
@@ -523,29 +523,29 @@ static NSTextRange *OFCookbookAccessibleTextRangeForRange(OFCookbookRecipeContex
     return [[NSTextRange alloc] initWithLocation:start endLocation:end];
 }
 
-static NSTextSelection *OFCookbookAccessibleTextSelectionAtPoint(OFCookbookRecipeContext *context, CGPoint point) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGPoint textPoint = OFCookbookAccessibleTextContainerPointFromPagePoint(context, point);
+static NSTextSelection *OFCookbookTextRegionSelectionAtPoint(OFCookbookPageContext *context, CGPoint point) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGPoint textPoint = OFCookbookTextRegionContainerPointFromPagePoint(context, point);
     NSArray<NSTextSelection *> *selections = [state.textLayoutManager.textSelectionNavigation textSelectionsInteractingAtPoint:textPoint
                                                                                                                     inContainerAtLocation:state.textLayoutManager.documentRange.location
                                                                                                                                   anchors:@[]
                                                                                                                                 modifiers:0
                                                                                                                                 selecting:NO
-                                                                                                                                   bounds:OFCookbookAccessibleTextContainerInteractionBounds(context)];
+                                                                                                                                   bounds:OFCookbookTextRegionContainerInteractionBounds(context)];
     return selections.firstObject;
 }
 
-static NSAttributedString *OFCookbookAttributedTextForAccessibleSelection(OFCookbookRecipeContext *context, NSTextSelection *selection) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    NSRange range = OFCookbookAccessibleRangeForTextSelection(context, selection);
+static NSAttributedString *OFCookbookAttributedTextForTextRegionSelection(OFCookbookPageContext *context, NSTextSelection *selection) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    NSRange range = OFCookbookTextRegionRangeForTextSelection(context, selection);
     if (range.length == 0 || NSMaxRange(range) > state.documentText.length) {
         return nil;
     }
     return [state.documentText attributedSubstringFromRange:range];
 }
 
-static NSAttributedString *OFCookbookSelectedAccessibleAttributedText(OFCookbookRecipeContext *context) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static NSAttributedString *OFCookbookSelectedTextRegionAttributedText(OFCookbookPageContext *context) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     if (!state.hasSelectionRange ||
         state.selectionRange.length == 0 ||
         NSMaxRange(state.selectionRange) > state.documentText.length) {
@@ -554,9 +554,9 @@ static NSAttributedString *OFCookbookSelectedAccessibleAttributedText(OFCookbook
     return [state.documentText attributedSubstringFromRange:state.selectionRange];
 }
 
-static NSInteger OFCookbookAccessibleTextLocationOffsetAtPoint(OFCookbookRecipeContext *context, CGPoint point) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    NSTextSelection *selection = OFCookbookAccessibleTextSelectionAtPoint(context, point);
+static NSInteger OFCookbookTextRegionLocationOffsetAtPoint(OFCookbookPageContext *context, CGPoint point) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    NSTextSelection *selection = OFCookbookTextRegionSelectionAtPoint(context, point);
     NSTextRange *range = selection.textRanges.firstObject;
     if (!range) {
         return NSNotFound;
@@ -565,7 +565,7 @@ static NSInteger OFCookbookAccessibleTextLocationOffsetAtPoint(OFCookbookRecipeC
                                                   toLocation:range.location];
 }
 
-static void OFCookbookShowContextMenuForAccessibleAttributedText(OFCookbookRecipeContext *context, NSAttributedString *text, CGPoint point) {
+static void OFCookbookShowContextMenuForTextRegionAttributedText(OFCookbookPageContext *context, NSAttributedString *text, CGPoint point) {
     if (text.length == 0) {
         return;
     }
@@ -583,8 +583,8 @@ static void OFCookbookShowContextMenuForAccessibleAttributedText(OFCookbookRecip
     OFHostShowContextMenu(context->host, rtfView, point.x, point.y);
 }
 
-static NSTextSelection *OFCookbookAccessibleTextLayoutFragmentSelectionAtTextPoint(OFCookbookRecipeContext *context, CGPoint textPoint) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+static NSTextSelection *OFCookbookTextRegionLayoutFragmentSelectionAtTextPoint(OFCookbookPageContext *context, CGPoint textPoint) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     __block NSTextLayoutFragment *matchingFragment = nil;
     [state.textLayoutManager enumerateTextLayoutFragmentsFromLocation:state.textLayoutManager.documentRange.location
                                                                        options:NSTextLayoutFragmentEnumerationOptionsEnsuresLayout
@@ -608,106 +608,106 @@ static NSTextSelection *OFCookbookAccessibleTextLayoutFragmentSelectionAtTextPoi
                                       granularity:NSTextSelectionGranularityParagraph];
 }
 
-void OFCookbookAccessibleTextMouseDown(OFCookbookRecipeContext *context, CGPoint point, uint32_t clickCount, bool *needs_render) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGRect viewportFrame = OFCookbookAccessibleViewportFrame(context);
-    OFCookbookConfigureAccessibleTextContainerForViewportSize(context, viewportFrame.size);
-    if (!OFCookbookIsPointInAccessibleTextViewport(context, point)) {
+void OFCookbookTextRegionMouseDown(OFCookbookPageContext *context, CGPoint point, uint32_t clickCount, bool *needs_render) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGRect viewportFrame = OFCookbookTextRegionViewportFrame(context);
+    OFCookbookConfigureTextRegionContainerForViewportSize(context, viewportFrame.size);
+    if (!OFCookbookIsPointInTextRegionViewport(context, point)) {
         state.dragAnchorSelections = @[];
-        OFCookbookSetAccessibleTextSelection(context, nil);
+        OFCookbookSetTextRegionSelection(context, nil);
         *needs_render = true;
         return;
     }
 
-    CGPoint textPoint = OFCookbookAccessibleTextContainerPointFromPagePoint(context, point);
+    CGPoint textPoint = OFCookbookTextRegionContainerPointFromPagePoint(context, point);
     NSArray<NSTextSelection *> *selections = [state.textLayoutManager.textSelectionNavigation textSelectionsInteractingAtPoint:textPoint
                                                                                                                     inContainerAtLocation:state.textLayoutManager.documentRange.location
                                                                                                                                   anchors:@[]
                                                                                                                                 modifiers:0
                                                                                                                                 selecting:NO
-                                                                                                                                   bounds:OFCookbookAccessibleTextContainerInteractionBounds(context)];
+                                                                                                                                   bounds:OFCookbookTextRegionContainerInteractionBounds(context)];
     state.dragAnchorSelections = selections ?: @[];
     if (clickCount >= 3) {
-        NSTextSelection *paragraphSelection = OFCookbookAccessibleTextLayoutFragmentSelectionAtTextPoint(context, textPoint);
+        NSTextSelection *paragraphSelection = OFCookbookTextRegionLayoutFragmentSelectionAtTextPoint(context, textPoint);
         state.dragAnchorSelections = paragraphSelection ? @[paragraphSelection] : @[];
-        OFCookbookSetAccessibleTextSelection(context, paragraphSelection);
+        OFCookbookSetTextRegionSelection(context, paragraphSelection);
     } else if (clickCount == 2 && selections.firstObject) {
         NSTextSelection *wordSelection = [state.textLayoutManager.textSelectionNavigation textSelectionForSelectionGranularity:NSTextSelectionGranularityWord
                                                                                                                  enclosingTextSelection:selections.firstObject];
-        OFCookbookSetAccessibleTextSelection(context, wordSelection);
+        OFCookbookSetTextRegionSelection(context, wordSelection);
     } else {
-        OFCookbookSetAccessibleTextSelection(context, nil);
+        OFCookbookSetTextRegionSelection(context, nil);
     }
     *needs_render = true;
 }
 
-void OFCookbookAccessibleTextMouseDragged(OFCookbookRecipeContext *context, CGPoint point, bool *needs_render) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+void OFCookbookTextRegionMouseDragged(OFCookbookPageContext *context, CGPoint point, bool *needs_render) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
     if (state.dragAnchorSelections.count == 0) {
         return;
     }
-    CGRect viewportFrame = OFCookbookAccessibleViewportFrame(context);
-    OFCookbookConfigureAccessibleTextContainerForViewportSize(context, viewportFrame.size);
-    CGPoint textPoint = OFCookbookAccessibleTextContainerPointFromPagePoint(context, point);
+    CGRect viewportFrame = OFCookbookTextRegionViewportFrame(context);
+    OFCookbookConfigureTextRegionContainerForViewportSize(context, viewportFrame.size);
+    CGPoint textPoint = OFCookbookTextRegionContainerPointFromPagePoint(context, point);
     NSArray<NSTextSelection *> *selections = [state.textLayoutManager.textSelectionNavigation textSelectionsInteractingAtPoint:textPoint
                                                                                                                     inContainerAtLocation:state.textLayoutManager.documentRange.location
                                                                                                                                   anchors:state.dragAnchorSelections
                                                                                                                                 modifiers:NSTextSelectionNavigationModifierExtend
                                                                                                                                 selecting:YES
-                                                                                                                                   bounds:OFCookbookAccessibleTextContainerInteractionBounds(context)];
-    OFCookbookSetAccessibleTextSelection(context, selections.firstObject);
+                                                                                                                                   bounds:OFCookbookTextRegionContainerInteractionBounds(context)];
+    OFCookbookSetTextRegionSelection(context, selections.firstObject);
     *needs_render = true;
 }
 
-void OFCookbookAccessibleTextRightMouseDown(OFCookbookRecipeContext *context, CGPoint point, CGPoint viewportPoint, bool *needs_render) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    CGRect viewportFrame = OFCookbookAccessibleViewportFrame(context);
-    OFCookbookConfigureAccessibleTextContainerForViewportSize(context, viewportFrame.size);
-    if (!OFCookbookIsPointInAccessibleTextViewport(context, viewportPoint)) {
+void OFCookbookTextRegionRightMouseDown(OFCookbookPageContext *context, CGPoint point, CGPoint viewportPoint, bool *needs_render) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    CGRect viewportFrame = OFCookbookTextRegionViewportFrame(context);
+    OFCookbookConfigureTextRegionContainerForViewportSize(context, viewportFrame.size);
+    if (!OFCookbookIsPointInTextRegionViewport(context, viewportPoint)) {
         return;
     }
 
-    NSInteger location = OFCookbookAccessibleTextLocationOffsetAtPoint(context, viewportPoint);
+    NSInteger location = OFCookbookTextRegionLocationOffsetAtPoint(context, viewportPoint);
     if (location != NSNotFound &&
         state.hasSelectionRange &&
         NSLocationInRange((NSUInteger)location, state.selectionRange)) {
-        NSAttributedString *selectedText = OFCookbookSelectedAccessibleAttributedText(context);
+        NSAttributedString *selectedText = OFCookbookSelectedTextRegionAttributedText(context);
         if (selectedText.length > 0) {
-            OFCookbookShowContextMenuForAccessibleAttributedText(context, selectedText, point);
+            OFCookbookShowContextMenuForTextRegionAttributedText(context, selectedText, point);
         }
         return;
     }
 
-    NSTextSelection *selection = OFCookbookAccessibleTextSelectionAtPoint(context, viewportPoint);
+    NSTextSelection *selection = OFCookbookTextRegionSelectionAtPoint(context, viewportPoint);
     if (!selection) {
         return;
     }
     NSTextSelection *wordSelection = [state.textLayoutManager.textSelectionNavigation textSelectionForSelectionGranularity:NSTextSelectionGranularityWord
                                                                                                              enclosingTextSelection:selection];
-    NSAttributedString *selectedText = OFCookbookAttributedTextForAccessibleSelection(context, wordSelection);
+    NSAttributedString *selectedText = OFCookbookAttributedTextForTextRegionSelection(context, wordSelection);
     if (selectedText.length == 0 ||
         [selectedText.string stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet].length == 0) {
         return;
     }
 
-    OFCookbookSetAccessibleTextSelection(context, wordSelection);
+    OFCookbookSetTextRegionSelection(context, wordSelection);
     *needs_render = true;
-    OFCookbookShowContextMenuForAccessibleAttributedText(context, selectedText, point);
+    OFCookbookShowContextMenuForTextRegionAttributedText(context, selectedText, point);
 }
 
-static void OFCookbookAccessibleTextRegionRenderFrame(OFCookbookRecipeContext *context) {
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
-    OFCookbookRenderRecipeFrame(context, OFCookbookRenderAccessibleTextRegion);
+static void OFCookbookTextRegionRenderFrame(OFCookbookPageContext *context) {
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
+    OFCookbookRenderPageFrame(context, OFCookbookRenderTextRegion);
     state.pageLayer = context->page_layer;
     OFCookbookUpdateRoutePageMetadata(context);
     OFCookbookUpdatePasteboardCapabilities(context, state.selectedCopyText);
 }
 
-static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *browser_message) {
+static bool OFCookbookTextRegionHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *browser_message) {
     if (!browser_message) {
         return false;
     }
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForContext(context);
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForContext(context);
 
     switch (browser_message->kind) {
         case OFBrowserMessageInitializeContent: {
@@ -720,12 +720,12 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
                 NSAppearance *appearance = [NSKeyedUnarchiver unarchivedObjectOfClass:NSAppearance.class fromData:data error:nil];
                 context->appearance = appearance ?: NSAppearance.currentDrawingAppearance;
             }
-            OFCookbookAccessibleTextRegionRenderFrame(context);
+            OFCookbookTextRegionRenderFrame(context);
             return true;
         }
         case OFBrowserMessageResizeContent: {
             context->current_size = browser_message->as.resize;
-            OFCookbookAccessibleTextRegionRenderFrame(context);
+            OFCookbookTextRegionRenderFrame(context);
             return true;
         }
         case OFBrowserMessageSystemAppearanceUpdate: {
@@ -734,7 +734,7 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
                                            freeWhenDone:NO];
             NSAppearance *appearance = [NSKeyedUnarchiver unarchivedObjectOfClass:NSAppearance.class fromData:data error:nil];
             context->appearance = appearance ?: NSAppearance.currentDrawingAppearance;
-            OFCookbookAccessibleTextRegionRenderFrame(context);
+            OFCookbookTextRegionRenderFrame(context);
             return true;
         }
         case OFBrowserMessageHistoryTraversal: {
@@ -743,7 +743,7 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
                 OFCookbookSwitchToRoute(context, route);
                 return true;
             }
-            OFCookbookAccessibleTextRegionRenderFrame(context);
+            OFCookbookTextRegionRenderFrame(context);
             return true;
         }
         case OFBrowserMessageShutdown:
@@ -751,7 +751,7 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
             return true;
         case OFBrowserMessageAccessibilitySnapshotRequest: {
             OFBuffer snapshot = {0};
-            if (!OFCookbookWriteAccessibleTextAccessibilitySnapshot(context, &snapshot)) {
+            if (!OFCookbookWriteTextRegionAccessibilitySnapshot(context, &snapshot)) {
                 OFAccessibilityNotImplementedSnapshot("Accessibility not implemented", &snapshot);
             }
             OFCookbookSendAccessibilitySnapshotResponse(context, browser_message->as.request.request_id, &snapshot);
@@ -763,16 +763,16 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
             return true;
         case OFBrowserMessageMouseMoved: {
             CGPoint point = OFCookbookViewportPointFromRootPoint(context, CGPointMake(browser_message->as.mouse.x, browser_message->as.mouse.y));
-            OFHostSetCursor(context->host, OFCookbookAccessibleTextIsPointOverText(context, point) ? OFCursorTypeIBeam : OFCursorTypeArrow);
+            OFHostSetCursor(context->host, OFCookbookTextRegionIsPointOverText(context, point) ? OFCursorTypeIBeam : OFCursorTypeArrow);
             return true;
         }
         case OFBrowserMessageMouseDown: {
             CGPoint point = OFCookbookViewportPointFromRootPoint(context, CGPointMake(browser_message->as.mouse.x, browser_message->as.mouse.y));
             bool needs_render = false;
-            OFCookbookAccessibleTextMouseDown(context, point, browser_message->as.mouse.click_count, &needs_render);
+            OFCookbookTextRegionMouseDown(context, point, browser_message->as.mouse.click_count, &needs_render);
             OFCookbookUpdatePasteboardCapabilities(context, state.selectedCopyText);
             if (needs_render) {
-                OFCookbookAccessibleTextRegionRenderFrame(context);
+                OFCookbookTextRegionRenderFrame(context);
             }
             return true;
         }
@@ -780,20 +780,20 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
             CGPoint root_point = CGPointMake(browser_message->as.mouse.x, browser_message->as.mouse.y);
             CGPoint point = OFCookbookViewportPointFromRootPoint(context, root_point);
             bool needs_render = false;
-            OFCookbookAccessibleTextRightMouseDown(context, root_point, point, &needs_render);
+            OFCookbookTextRegionRightMouseDown(context, root_point, point, &needs_render);
             OFCookbookUpdatePasteboardCapabilities(context, state.selectedCopyText);
             if (needs_render) {
-                OFCookbookAccessibleTextRegionRenderFrame(context);
+                OFCookbookTextRegionRenderFrame(context);
             }
             return true;
         }
         case OFBrowserMessageMouseDragged: {
             CGPoint point = OFCookbookViewportPointFromRootPoint(context, CGPointMake(browser_message->as.mouse.x, browser_message->as.mouse.y));
             bool needs_render = false;
-            OFCookbookAccessibleTextMouseDragged(context, point, &needs_render);
+            OFCookbookTextRegionMouseDragged(context, point, &needs_render);
             OFCookbookUpdatePasteboardCapabilities(context, state.selectedCopyText);
             if (needs_render) {
-                OFCookbookAccessibleTextRegionRenderFrame(context);
+                OFCookbookTextRegionRenderFrame(context);
             }
             return true;
         }
@@ -805,7 +805,7 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
         case OFBrowserMessageScrollWheelEvent: {
             CGFloat previous_offset = state.scrollOffset;
             state.scrollOffset = MAX(0, state.scrollOffset - browser_message->as.scroll.delta_y);
-            OFCookbookAccessibleTextRegionRenderFrame(context);
+            OFCookbookTextRegionRenderFrame(context);
             if (fabs(state.scrollOffset - previous_offset) > 0.0001) {
                 OFHostSendAccessibilityTreeChanged(context->host, OFAccessibilityNotificationLayoutChanged);
             }
@@ -816,35 +816,35 @@ static bool OFCookbookAccessibleTextRegionHandleBrowserMessage(OFCookbookRecipeC
     }
 }
 
-static void OFCookbookAccessibleTextRegionEnterRoute(void *runtime) {
-    OFCookbookAccessibleTextRegionStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookAccessibleTextRegionState new];
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForRuntime(runtime);
-    OFCookbookAccessibleTextRegionApplyStateToContext(context, state);
-    OFCookbookAccessibleTextRegionRenderFrame(context);
+static void OFCookbookTextRegionEnterRoute(void *runtime) {
+    OFCookbookTextRegionStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookTextRegionState new];
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForRuntime(runtime);
+    OFCookbookTextRegionApplyStateToContext(context, state);
+    OFCookbookTextRegionRenderFrame(context);
 }
 
-static void OFCookbookAccessibleTextRegionLeaveRoute(void *runtime) {
+static void OFCookbookTextRegionLeaveRoute(void *runtime) {
     NSValue *key = [NSValue valueWithPointer:runtime];
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStates()[key];
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStates()[key];
     [state.pageLayer removeFromSuperlayer];
     state.pageLayer = nil;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     context->page_layer = nil;
-    context->recipe_state = NULL;
-    [OFCookbookAccessibleTextRegionStates() removeObjectForKey:key];
+    context->page_state = NULL;
+    [OFCookbookTextRegionStates() removeObjectForKey:key];
 }
 
-static void OFCookbookAccessibleTextRegionHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
+static void OFCookbookTextRegionHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
     (void)host;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
-    OFCookbookAccessibleTextRegionState *state = OFCookbookAccessibleTextRegionStateForRuntime(runtime);
-    OFCookbookAccessibleTextRegionApplyStateToContext(context, state);
-    OFCookbookAccessibleTextRegionHandleBrowserMessage(context, message);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
+    OFCookbookTextRegionState *state = OFCookbookTextRegionStateForRuntime(runtime);
+    OFCookbookTextRegionApplyStateToContext(context, state);
+    OFCookbookTextRegionHandleBrowserMessage(context, message);
 }
 
-const OFCookbookRecipeHandler OFCookbookAccessibleTextRegionHandler = {
-    .handle_message = OFCookbookAccessibleTextRegionHandleMessage,
-    .enter_route = OFCookbookAccessibleTextRegionEnterRoute,
-    .leave_route = OFCookbookAccessibleTextRegionLeaveRoute,
+const OFCookbookPageHandler OFCookbookTextRegionHandler = {
+    .handle_message = OFCookbookTextRegionHandleMessage,
+    .enter_route = OFCookbookTextRegionEnterRoute,
+    .leave_route = OFCookbookTextRegionLeaveRoute,
 };

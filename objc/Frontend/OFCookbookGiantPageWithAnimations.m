@@ -1,7 +1,7 @@
 #import "OFCookbookController.h"
 
-static void OFCookbookGiantPageWithAnimationsScroll(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point);
-static void OFCookbookGiantPageWithAnimationsRenderFrame(OFCookbookRecipeContext *context);
+static void OFCookbookGiantPageWithAnimationsScroll(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point);
+static void OFCookbookGiantPageWithAnimationsRenderFrame(OFCookbookPageContext *context);
 static void OFCookbookGiantPageWithAnimationsEnterRoute(void *runtime);
 static void OFCookbookGiantPageWithAnimationsLeaveRoute(void *runtime);
 static void OFCookbookGiantPageWithAnimationsHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime);
@@ -47,19 +47,19 @@ static OFCookbookGiantPageWithAnimationsState *OFCookbookGiantPageWithAnimations
     return state;
 }
 
-static OFCookbookGiantPageWithAnimationsState *OFCookbookGiantPageWithAnimationsStateForContext(OFCookbookRecipeContext *context) {
-    return (__bridge OFCookbookGiantPageWithAnimationsState *)context->recipe_state;
+static OFCookbookGiantPageWithAnimationsState *OFCookbookGiantPageWithAnimationsStateForContext(OFCookbookPageContext *context) {
+    return (__bridge OFCookbookGiantPageWithAnimationsState *)context->page_state;
 }
 
-static void OFCookbookGiantPageWithAnimationsApplyStateToContext(OFCookbookRecipeContext *context, OFCookbookGiantPageWithAnimationsState *state) {
-    context->recipe_state = (__bridge void *)state;
+static void OFCookbookGiantPageWithAnimationsApplyStateToContext(OFCookbookPageContext *context, OFCookbookGiantPageWithAnimationsState *state) {
+    context->page_state = (__bridge void *)state;
     context->page_layer = state.pageLayer;
     context->accessibility_labels = state.accessibilityLabels;
     context->accessibility_frames = state.accessibilityFrames;
     context->accessibility_roles = state.accessibilityRoles;
 }
 
-void OFCookbookRenderGiantPageWithAnimations(OFCookbookRecipeContext *context) {
+void OFCookbookRenderGiantPageWithAnimations(OFCookbookPageContext *context) {
     OFCookbookGiantPageWithAnimationsState *state = OFCookbookGiantPageWithAnimationsStateForContext(context);
     NSInteger itemCount = 420;
     CGFloat rowHeight = 80;
@@ -149,21 +149,21 @@ void OFCookbookRenderGiantPageWithAnimations(OFCookbookRecipeContext *context) {
     OFCookbookAddScrollbarForContentHeight(context, contentHeight, context->current_size.height, state.scrollOffset);
 }
 
-static void OFCookbookGiantPageWithAnimationsScroll(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point) {
+static void OFCookbookGiantPageWithAnimationsScroll(OFCookbookPageContext *context, CGFloat adjusted_delta, CGPoint point) {
     (void)point;
     OFCookbookGiantPageWithAnimationsState *state = OFCookbookGiantPageWithAnimationsStateForContext(context);
     state.scrollOffset = MAX(0, state.scrollOffset + adjusted_delta);
     OFCookbookGiantPageWithAnimationsRenderFrame(context);
 }
 
-static void OFCookbookGiantPageWithAnimationsRenderFrame(OFCookbookRecipeContext *context) {
-    OFCookbookRenderRecipeFrame(context, OFCookbookRenderGiantPageWithAnimations);
+static void OFCookbookGiantPageWithAnimationsRenderFrame(OFCookbookPageContext *context) {
+    OFCookbookRenderPageFrame(context, OFCookbookRenderGiantPageWithAnimations);
     OFCookbookGiantPageWithAnimationsStateForContext(context).pageLayer = context->page_layer;
     OFCookbookUpdateRoutePageMetadata(context);
     OFCookbookUpdatePasteboardCapabilities(context, nil);
 }
 
-static bool OFCookbookGiantPageWithAnimationsHandleBrowserMessage(OFCookbookRecipeContext *context, const OFBrowserMessage *message) {
+static bool OFCookbookGiantPageWithAnimationsHandleBrowserMessage(OFCookbookPageContext *context, const OFBrowserMessage *message) {
     switch (message->kind) {
         case OFBrowserMessageInitializeContent: {
             OFHostConfigureFromInitialize(context->host, &message->as.initialize);
@@ -220,7 +220,7 @@ static bool OFCookbookGiantPageWithAnimationsHandleBrowserMessage(OFCookbookReci
     }
 }
 
-const OFCookbookRecipeHandler OFCookbookGiantPageWithAnimationsHandler = {
+const OFCookbookPageHandler OFCookbookGiantPageWithAnimationsHandler = {
     .handle_message = OFCookbookGiantPageWithAnimationsHandleMessage,
     .enter_route = OFCookbookGiantPageWithAnimationsEnterRoute,
     .leave_route = OFCookbookGiantPageWithAnimationsLeaveRoute,
@@ -228,7 +228,7 @@ const OFCookbookRecipeHandler OFCookbookGiantPageWithAnimationsHandler = {
 
 static void OFCookbookGiantPageWithAnimationsEnterRoute(void *runtime) {
     OFCookbookGiantPageWithAnimationsStates()[[NSValue valueWithPointer:runtime]] = [OFCookbookGiantPageWithAnimationsState new];
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookGiantPageWithAnimationsState *state = OFCookbookGiantPageWithAnimationsStateForRuntime(runtime);
     OFCookbookGiantPageWithAnimationsApplyStateToContext(context, state);
     OFCookbookGiantPageWithAnimationsRenderFrame(context);
@@ -239,15 +239,15 @@ static void OFCookbookGiantPageWithAnimationsLeaveRoute(void *runtime) {
     OFCookbookGiantPageWithAnimationsState *state = OFCookbookGiantPageWithAnimationsStates()[key];
     [state.pageLayer removeFromSuperlayer];
     state.pageLayer = nil;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     context->page_layer = nil;
-    context->recipe_state = NULL;
+    context->page_state = NULL;
     [OFCookbookGiantPageWithAnimationsStates() removeObjectForKey:key];
 }
 
 static void OFCookbookGiantPageWithAnimationsHandleMessage(OFHost *host, const OFBrowserMessage *message, void *runtime) {
     (void)host;
-    OFCookbookRecipeContext *context = OFCookbookGetRecipeContext(runtime);
+    OFCookbookPageContext *context = OFCookbookGetPageContext(runtime);
     OFCookbookGiantPageWithAnimationsState *state = OFCookbookGiantPageWithAnimationsStateForRuntime(runtime);
     OFCookbookGiantPageWithAnimationsApplyStateToContext(context, state);
     OFCookbookGiantPageWithAnimationsHandleBrowserMessage(context, message);

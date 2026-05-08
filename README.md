@@ -5,7 +5,7 @@ Example [outerframe](https://github.com/outergroup/outerframe) content for macOS
 - `swift/` contains the Swift cookbook sources for `cookbook-macos-swift.outer`
 - `objc/` contains the Objective-C cookbook sources for `cookbook-macos-objc.outer`
 
-Both cookbooks expose the same recipe list so the Swift and Objective-C vendored libraries can be manually tested against similar content.
+Both cookbooks expose the same page list so the Swift and Objective-C vendored libraries can be manually tested against similar content.
 
 The repo has one Xcode project, `OuterframeCookbook.xcodeproj`, with two bundle targets:
 
