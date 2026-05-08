@@ -1,10 +1,3 @@
-//
-//  SafeDispatchSource.swift
-//  OuterLoop
-//
-//  Created by Marcus Lewis on 10/14/25.
-//
-
 import Dispatch
 
 // DispatchSources error out if you double-call suspend or resume, so we use this wrapper.

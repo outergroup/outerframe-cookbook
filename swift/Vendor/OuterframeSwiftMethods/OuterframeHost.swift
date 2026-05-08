@@ -28,7 +28,7 @@ typealias OuterframeHostDisconnectHandler = @MainActor (OuterframeHost) -> Void
 @MainActor
 protocol OuterframeHostDelegate: AnyObject {
     /// Called when a message is received from the browser.
-    /// Note: displayLinkFired, displayLinkCallbackRegistered, and imageWithSystemSymbolName
+    /// Note: displayLinkFired and displayLinkCallbackRegistered
     /// are handled internally by OuterframeHost and will not be forwarded to this delegate.
     func outerframeHost(_ host: OuterframeHost, didReceiveMessage message: BrowserToContentMessage)
 
@@ -62,9 +62,6 @@ final class OuterframeHost: SocketToBrowserDelegate {
     private var pendingDisplayLinkCallbacks: [UUID: @MainActor @Sendable (CFTimeInterval) -> Void] = [:]
     private var callbackIDToBrowserID: [UUID: UUID] = [:]
     private var browserIDToCallbackID: [UUID: UUID] = [:]
-
-    // SF Symbol request tracking
-    private var imageRequests: [UUID: (Data?, UInt32, UInt32, UInt32) -> Void] = [:]
 
     /// Creates an OuterframeHost and starts the socket.
     /// Call `configure()` after receiving the initializeContent message to set context and appearance.
@@ -131,11 +128,6 @@ final class OuterframeHost: SocketToBrowserDelegate {
         case .displayLinkCallbackRegistered(let callbackID, let browserCallbackID):
             handleDisplayLinkCallbackRegistered(callbackID: callbackID, browserCallbackID: browserCallbackID)
             return
-
-        case .imageWithSystemSymbolName(let requestID, let alphaMaskData, let width, let height, let bytesPerRow, _, _):
-            handleImageWithSystemSymbolNameResponse(requestID: requestID, alphaMaskData: alphaMaskData, width: width, height: height, bytesPerRow: bytesPerRow)
-            return
-
         case .initializeContent(let arguments):
             _currentHistoryEntryID = arguments.historyEntryID
 
@@ -242,33 +234,6 @@ final class OuterframeHost: SocketToBrowserDelegate {
     private func handleDisplayLinkFired(targetTimestamp: Double) {
         for callback in displayLinkCallbacks.values {
             callback(targetTimestamp)
-        }
-    }
-
-    // MARK: - systemSymbolName image Requests
-
-    func getImage(systemSymbolName: String,
-                  pointSize: CGFloat,
-                  weight: NSFont.Weight,
-                  scale: CGFloat,
-                  completion: @escaping (Data?, UInt32, UInt32, UInt32) -> Void) {
-        let requestID = UUID()
-        imageRequests[requestID] = completion
-
-        Task {
-            try? await socket.send(ContentToBrowserMessage.getImageWithSystemSymbolName(
-                requestID: requestID,
-                symbolName: systemSymbolName,
-                pointSize: pointSize,
-                weight: Double(weight.rawValue),
-                scale: scale
-            ).encode())
-        }
-    }
-
-    private func handleImageWithSystemSymbolNameResponse(requestID: UUID, alphaMaskData: Data?, width: UInt32, height: UInt32, bytesPerRow: UInt32) {
-        if let completion = imageRequests.removeValue(forKey: requestID) {
-            completion(alphaMaskData, width, height, bytesPerRow)
         }
     }
 

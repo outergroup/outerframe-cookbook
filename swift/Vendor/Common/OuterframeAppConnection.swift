@@ -1,10 +1,3 @@
-//
-//  OuterframeAppConnection.swift
-//  OuterLoop
-//
-//  Created by Marcus Lewis on 10/29/25.
-//
-
 import AppKit
 
 /// Minimal protocol for plugin communication back to the host.
