@@ -1,11 +1,16 @@
 # Outerframe macOS Cookbooks
 
-Example [outerframe](https://github.com/outergroup/outerframe) content for macOS in two implementations:
+Browse these using [Outer Loop](https://outerloop.sh).
+
+- Swift: https://probablymarcus.com/cookbook-macos-swift.outer
+- C: https://probablymarcus.com/cookbook-macos-objc.outer
+
+Source code:
 
 - `swift/` contains the Swift cookbook sources for `cookbook-macos-swift.outer`
 - `objc/` contains the Objective-C cookbook sources for `cookbook-macos-objc.outer`
 
-Both cookbooks expose the same page list so the Swift and Objective-C vendored libraries can be manually tested against similar content.
+Both cookbooks have the same set of recipes.
 
 The repo has one Xcode project, `OuterframeCookbook.xcodeproj`, with two bundle targets:
 
