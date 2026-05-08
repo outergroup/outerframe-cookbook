@@ -2,9 +2,9 @@
 #import "Vendor/OuterframeC/OuterframeHost.h"
 
 #import <AppKit/AppKit.h>
-#import <Metal/Metal.h>
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
+#import <stdbool.h>
 #import <simd/simd.h>
 #import <string.h>
 
@@ -37,134 +37,104 @@ CGFloat OFClamp(CGFloat value, CGFloat lower, CGFloat upper);
 CATextLayer *OFTextLayer(NSString *text, NSFont *font, NSColor *color, CGFloat fontSize);
 CALayer *OFRoundedLayer(NSColor *fill, NSColor *stroke, CGFloat radius);
 
+typedef struct {
+    OFCookbookRoute route;
+    CGSize current_size;
+    OFUUID history_entry_id;
+    uint32_t history_length;
+    bool can_go_back;
+    bool can_go_forward;
+    void *runtime;
+    void *recipe_state;
+    OFHost *host;
+    __strong NSBundle *bundle;
+    __strong CALayer *root_layer;
+    __unsafe_unretained CALayer *page_layer;
+    __strong NSAppearance *appearance;
+    __unsafe_unretained NSMutableArray<NSString *> *accessibility_labels;
+    __unsafe_unretained NSMutableArray<NSValue *> *accessibility_frames;
+    __unsafe_unretained NSMutableArray<NSNumber *> *accessibility_roles;
+} OFCookbookRecipeContext;
+
+typedef void (*OFCookbookRecipeRouteCallback)(void *runtime);
+
+typedef struct OFCookbookRecipeHandler {
+    OFHostMessageCallback handle_message;
+    OFCookbookRecipeRouteCallback enter_route;
+    OFCookbookRecipeRouteCallback leave_route;
+} OFCookbookRecipeHandler;
+
+extern const OFCookbookRecipeHandler OFCookbookTableOfContentsHandler;
+extern const OFCookbookRecipeHandler OFCookbookAccessibleTextRegionHandler;
+extern const OFCookbookRecipeHandler OFCookbookManualScrollViewHandler;
+extern const OFCookbookRecipeHandler OFCookbookNestedScrollDemoHandler;
+extern const OFCookbookRecipeHandler OFCookbookTimelineRangeSelectorHandler;
+extern const OFCookbookRecipeHandler OFCookbookGiantPageWithAnimationsHandler;
+extern const OFCookbookRecipeHandler OFCookbookNCubeHandler;
+
+const OFCookbookRecipeHandler *OFCookbookRecipeHandlerForRoute(OFCookbookRoute route);
+
+void OFCookbookAddAccessibilityLabel(OFCookbookRecipeContext *context, NSString *label, CGRect frame, OFAccessibilityRole role);
+CATextLayer *OFCookbookAddText(OFCookbookRecipeContext *context, NSString *text, CGFloat font_size, NSFontWeight weight, NSColor *color, CGRect frame);
+void OFCookbookAddScrollbarForContentHeight(OFCookbookRecipeContext *context, CGFloat content_height, CGFloat viewport_height, CGFloat offset);
+void OFCookbookAddScrollbarInLayer(OFCookbookRecipeContext *context, CALayer *layer, CGSize viewport_size, CGFloat content_height, CGFloat offset, bool bottom_origin);
+CGPoint OFCookbookViewportPointFromRootPoint(OFCookbookRecipeContext *context, CGPoint root_point);
+void OFCookbookRenderRecipeFrame(OFCookbookRecipeContext *context, void (*render)(OFCookbookRecipeContext *context));
+void OFCookbookUpdateRoutePageMetadata(OFCookbookRecipeContext *context);
+void OFCookbookUpdatePasteboardCapabilities(OFCookbookRecipeContext *context, NSString *selected_text);
+void OFCookbookSendCopySelectedPasteboardResponse(OFCookbookRecipeContext *context, OFUUID request_id, NSString *selected_text);
+void OFCookbookSendAccessibilitySnapshotResponse(OFCookbookRecipeContext *context, OFUUID request_id, const OFBuffer *snapshot);
+void OFCookbookSendDefaultAccessibilitySnapshotResponse(OFCookbookRecipeContext *context, OFUUID request_id);
+OFCookbookRecipeContext *OFCookbookGetRecipeContext(void *runtime);
+OFCookbookRoute OFCookbookRouteFromURLStringView(OFStringView url);
+void OFCookbookNavigateToRoute(OFCookbookRecipeContext *context, OFCookbookRoute route);
+void OFCookbookSwitchToRoute(OFCookbookRecipeContext *context, OFCookbookRoute route);
+void OFCookbookRequestShutdown(void *runtime);
+
+void OFCookbookRenderTableOfContents(OFCookbookRecipeContext *context);
+void OFCookbookRenderManualScrollView(OFCookbookRecipeContext *context);
+void OFCookbookRenderNestedScrollDemo(OFCookbookRecipeContext *context);
+bool OFCookbookNestedScrollDemoScroll(OFCookbookRecipeContext *context, CGFloat adjusted_delta, CGPoint point);
+void OFCookbookRenderTimelineRangeSelector(OFCookbookRecipeContext *context);
+void OFCookbookTimelineRangeMouseDown(OFCookbookRecipeContext *context, CGPoint point, bool *needs_render);
+void OFCookbookTimelineRangeMouseDragged(OFCookbookRecipeContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render);
+void OFCookbookTimelineRangeMouseUp(OFCookbookRecipeContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render);
+void OFCookbookTimelineRangeMouseMoved(OFCookbookRecipeContext *context, CGPoint point, OFCursorType *cursor, bool *needs_render);
+void OFCookbookRenderGiantPageWithAnimations(OFCookbookRecipeContext *context);
+NSAttributedString *OFCookbookMakeAccessibleDocumentText(void);
+void OFCookbookRenderAccessibleTextRegion(OFCookbookRecipeContext *context);
+bool OFCookbookWriteAccessibleTextAccessibilitySnapshot(OFCookbookRecipeContext *context, OFBuffer *out_snapshot_data);
+bool OFCookbookAccessibleTextIsPointOverText(OFCookbookRecipeContext *context, CGPoint point);
+void OFCookbookAccessibleTextMouseDown(OFCookbookRecipeContext *context, CGPoint point, uint32_t click_count, bool *needs_render);
+void OFCookbookAccessibleTextMouseDragged(OFCookbookRecipeContext *context, CGPoint point, bool *needs_render);
+void OFCookbookAccessibleTextRightMouseDown(OFCookbookRecipeContext *context, CGPoint root_point, CGPoint viewport_point, bool *needs_render);
+void OFCookbookRenderNCube(OFCookbookRecipeContext *context);
+void OFCookbookRenderNCubeFrameAtTimestamp(OFCookbookRecipeContext *context, CFTimeInterval target_timestamp);
+
+@interface OFCookbookController : NSObject {
+@public
+    OFCookbookRecipeContext _recipe_context;
+}
+@property(nonatomic, assign) OFHost *host;
+@property(nonatomic, strong) id<OuterframeAppConnection> appConnection;
+@property(nonatomic, strong) id retainedSelf;
+@property(nonatomic, assign) const OFCookbookRecipeHandler *recipeHandler;
+@property(nonatomic, assign) BOOL registeredLayer;
+@property(nonatomic, assign) BOOL destroyScheduled;
+
+- (instancetype)initWithSocketFD:(int32_t)socketFD appConnection:(id<OuterframeAppConnection>)appConnection;
+- (void)navigateToRoute:(OFCookbookRoute)route;
+- (void)switchToRoute:(OFCookbookRoute)route;
+- (void)initializeWithMessage:(const OFInitializeContent *)initialize;
+- (void)enterCurrentRecipe;
+- (void)leaveCurrentRecipe;
+- (void)requestShutdown;
+@end
+
 @interface OFTextKitDisplayLayer : CALayer
 @property(nonatomic, strong) NSAppearance *appearance;
 @property(nonatomic, strong) NSTextLayoutManager *textLayoutManager;
 @property(nonatomic, assign) CGFloat scrollOffset;
 @property(nonatomic, assign) CGPoint textInset;
 @property(nonatomic, assign) CGRect visibleBounds;
-@end
-
-@interface OFCookbookController : NSObject
-@property(nonatomic, assign) OFHost *host;
-@property(nonatomic, strong) id<OuterframeAppConnection> appConnection;
-@property(nonatomic, strong) id retainedSelf;
-@property(nonatomic, strong) NSAppearance *appearance;
-@property(nonatomic, strong) CALayer *rootLayer;
-@property(nonatomic, strong) CALayer *pageLayer;
-@property(nonatomic, strong) NSMutableArray<NSValue *> *hitFrames;
-@property(nonatomic, strong) NSMutableArray<NSNumber *> *hitRoutes;
-@property(nonatomic, strong) NSMutableArray<NSString *> *accessibilityLabels;
-@property(nonatomic, strong) NSMutableArray<NSValue *> *accessibilityFrames;
-@property(nonatomic, strong) NSMutableArray<NSNumber *> *accessibilityRoles;
-@property(nonatomic, strong) NSString *selectedCopyText;
-@property(nonatomic, strong) NSTextContentStorage *accessibleContentStorage;
-@property(nonatomic, strong) NSTextLayoutManager *accessibleTextLayoutManager;
-@property(nonatomic, strong) NSTextContainer *accessibleTextContainer;
-@property(nonatomic, strong) NSAttributedString *accessibleDocumentText;
-@property(nonatomic, strong) NSArray<NSTextSelection *> *accessibleDragAnchorSelections;
-@property(nonatomic, assign) NSRange accessibleSelectionRange;
-@property(nonatomic, assign) BOOL hasAccessibleSelectionRange;
-@property(nonatomic, assign) CGSize currentSize;
-@property(nonatomic, assign) OFCookbookRoute route;
-@property(nonatomic, assign) CGFloat scrollOffset;
-@property(nonatomic, assign) CGFloat innerScrollOffset;
-@property(nonatomic, assign) CGFloat timelineStart;
-@property(nonatomic, assign) CGFloat timelineEnd;
-@property(nonatomic, assign) BOOL timelineHasSelection;
-@property(nonatomic, assign) NSInteger timelineDragOperation;
-@property(nonatomic, assign) CGFloat timelineDragAnchor;
-@property(nonatomic, assign) BOOL timelineCreationDidMove;
-@property(nonatomic, assign) BOOL timelineHasHover;
-@property(nonatomic, assign) CGFloat timelineHoverFraction;
-@property(nonatomic, assign) CGFloat animationTime;
-@property(nonatomic, assign) CFTimeInterval giantAnimationBaseTime;
-@property(nonatomic, assign) CFTimeInterval cubeAnimationStartTime;
-@property(nonatomic, strong) id<MTLDevice> metalDevice;
-@property(nonatomic, strong) id<MTLCommandQueue> metalCommandQueue;
-@property(nonatomic, strong) id<MTLRenderPipelineState> metalPipelineState;
-@property(nonatomic, strong) CAMetalLayer *metalLayer;
-@property(nonatomic, strong) NSString *metalSetupError;
-@property(nonatomic, assign) BOOL registeredLayer;
-@property(nonatomic, assign) BOOL hasDisplayLink;
-@property(nonatomic, assign) BOOL destroyScheduled;
-@property(nonatomic, assign) OFUUID displayLinkID;
-
-- (instancetype)initWithSocketFD:(int32_t)socketFD appConnection:(id<OuterframeAppConnection>)appConnection;
-- (void)handleMessage:(const OFBrowserMessage *)message;
-- (void)renderCurrentRoute;
-- (void)navigateToRoute:(OFCookbookRoute)route;
-- (void)switchToRoute:(OFCookbookRoute)route;
-- (void)addAccessibilityLabel:(NSString *)label frame:(CGRect)frame role:(OFAccessibilityRole)role;
-- (CATextLayer *)addText:(NSString *)text fontSize:(CGFloat)fontSize weight:(NSFontWeight)weight color:(NSColor *)color frame:(CGRect)frame;
-- (void)addPageHeaderWithSubtitle:(NSString *)subtitle;
-- (CGPoint)viewportPointFromRootPoint:(CGPoint)point;
-- (void)addScrollbarForContentHeight:(CGFloat)contentHeight viewportHeight:(CGFloat)viewportHeight offset:(CGFloat)offset outer:(BOOL)outer;
-- (void)addScrollbarInLayer:(CALayer *)layer viewportSize:(CGSize)viewportSize contentHeight:(CGFloat)contentHeight offset:(CGFloat)offset bottomOrigin:(BOOL)bottomOrigin;
-- (void)updatePasteboardCapabilities;
-- (void)sendCopyResponse:(OFUUID)requestID;
-- (bool)writeAccessibilitySnapshot:(OFBuffer *)outSnapshotData;
-- (void)requestShutdown;
-- (void)displayLinkTick:(double)targetTimestamp;
-- (void)startDisplayLink;
-- (void)stopDisplayLink;
-@end
-
-@interface OFCookbookController (TableOfContents)
-- (void)renderTableOfContents;
-@end
-
-@interface OFCookbookController (AccessibleTextRegion)
-- (void)renderAccessibleText;
-- (NSAttributedString *)makeAccessibleDocumentText;
-- (bool)writeAccessibleTextAccessibilitySnapshot:(OFBuffer *)outSnapshotData;
-- (CGRect)accessibleViewportFrame;
-- (CGPoint)accessibleTextContainerPointFromPagePoint:(CGPoint)point;
-- (CGRect)accessibleTextContainerInteractionBounds;
-- (void)configureAccessibleTextContainerForViewportSize:(CGSize)viewportSize;
-- (BOOL)isPointInAccessibleTextViewport:(CGPoint)point;
-- (BOOL)isPointOverAccessibleText:(CGPoint)point;
-- (void)setAccessibleTextSelection:(NSTextSelection *)selection;
-- (NSRange)accessibleRangeForTextSelection:(NSTextSelection *)selection;
-- (NSTextRange *)accessibleTextRangeForRange:(NSRange)range;
-- (NSTextSelection *)accessibleTextSelectionAtPoint:(CGPoint)point;
-- (NSAttributedString *)attributedTextForAccessibleSelection:(NSTextSelection *)selection;
-- (NSAttributedString *)selectedAccessibleAttributedText;
-- (NSInteger)accessibleTextLocationOffsetAtPoint:(CGPoint)point;
-- (void)showContextMenuForAccessibleAttributedText:(NSAttributedString *)text atPoint:(CGPoint)point;
-- (NSTextSelection *)accessibleTextLayoutFragmentSelectionAtTextPoint:(CGPoint)textPoint;
-- (void)accessibleMouseDownAtPoint:(CGPoint)point clickCount:(uint32_t)clickCount;
-- (void)accessibleMouseDraggedToPoint:(CGPoint)point;
-- (void)rightMouseDownAt:(CGPoint)point clickCount:(uint32_t)clickCount;
-@end
-
-@interface OFCookbookController (ManualScrollView)
-- (void)renderManualScroll;
-@end
-
-@interface OFCookbookController (NestedScrollDemo)
-- (void)renderNestedScroll;
-- (BOOL)nestedScrollByAdjustedDelta:(CGFloat)adjusted atPoint:(CGPoint)point;
-@end
-
-@interface OFCookbookController (TimelineRangeSelector)
-- (void)renderTimelineRange;
-- (CGFloat)timelineFunctionValueAt:(CGFloat)x;
-- (CGFloat)timelineIntegralFrom:(CGFloat)start to:(CGFloat)end;
-- (void)timelineMouseDownAtPoint:(CGPoint)point;
-- (void)timelineMouseDraggedToPoint:(CGPoint)point;
-- (void)timelineMouseUpAtPoint:(CGPoint)point;
-- (void)timelineMouseMovedAtPoint:(CGPoint)point;
-@end
-
-@interface OFCookbookController (GiantPageWithAnimations)
-- (void)renderGiantPage;
-@end
-
-@interface OFCookbookController (NDimensionalCubeShadow)
-- (void)renderNCube;
-- (void)setupMetalIfNeeded;
-- (void)renderNCubeFrameAtTimestamp:(CFTimeInterval)targetTimestamp;
-- (OFNCubeUniforms)makeNCubeUniformsAtTime:(float)time drawableSize:(CGSize)drawableSize;
-- (void)rotateNCubeVector:(const float *)vector time:(float)time output:(float *)output;
 @end
