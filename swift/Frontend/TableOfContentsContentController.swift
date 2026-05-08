@@ -320,17 +320,17 @@ final class CookbookTableOfContentsContentController: NSObject, CookbookPageCont
 
         let children = entryLayers.enumerated().map { index, entry in
             OuterframeAccessibilityNode(identifier: UInt32(index + 1),
-                                    role: .button,
-                                    frame: contentLayer.convert(entry.containerLayer.frame, to: rootLayer),
-                                    label: entry.titleLayer.string as? String,
-                                    hint: entry.descriptionLayer.string as? String)
+                                        role: .button,
+                                        frame: contentLayer.convert(entry.containerLayer.frame, to: rootLayer),
+                                        label: entry.titleLayer.string as? String,
+                                        hint: entry.descriptionLayer.string as? String)
         }
 
         let rootNode = OuterframeAccessibilityNode(identifier: 0,
-                                               role: .container,
-                                               frame: rootLayer.frame,
-                                               label: "Outerframe Cookbook",
-                                               children: children)
+                                                   role: .container,
+                                                   frame: rootLayer.frame,
+                                                   label: "Outerframe Cookbook",
+                                                   children: children)
         return OuterframeAccessibilitySnapshot(rootNodes: [rootNode]).serializedData()
     }
 

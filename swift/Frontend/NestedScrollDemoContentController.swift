@@ -409,12 +409,12 @@ import QuartzCore
                       hint: String? = nil,
                       children: [OuterframeAccessibilityNode] = []) -> OuterframeAccessibilityNode {
             let node = OuterframeAccessibilityNode(identifier: nextIdentifier,
-                                               role: role,
-                                               frame: frame,
-                                               label: label,
-                                               value: value,
-                                               hint: hint,
-                                               children: children)
+                                                   role: role,
+                                                   frame: frame,
+                                                   label: label,
+                                                   value: value,
+                                                   hint: hint,
+                                                   children: children)
             nextIdentifier += 1
             return node
         }
@@ -489,10 +489,10 @@ import QuartzCore
         rootChildren.append(outerContainerNode)
 
         let rootNode = OuterframeAccessibilityNode(identifier: 0,
-                                               role: .container,
-                                               frame: layers.rootLayer.bounds,
-                                               label: "Nested Scroll Demo",
-                                               children: rootChildren)
+                                                   role: .container,
+                                                   frame: layers.rootLayer.bounds,
+                                                   label: "Nested Scroll Demo",
+                                                   children: rootChildren)
         let snapshot = OuterframeAccessibilitySnapshot(rootNodes: [rootNode])
         return snapshot.serializedData()
     }

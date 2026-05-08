@@ -526,10 +526,10 @@ import QuartzCore
                       label: String?,
                       children: [OuterframeAccessibilityNode] = []) -> OuterframeAccessibilityNode {
             let node = OuterframeAccessibilityNode(identifier: nextIdentifier,
-                                               role: role,
-                                               frame: frame,
-                                               label: label,
-                                               children: children)
+                                                   role: role,
+                                                   frame: frame,
+                                                   label: label,
+                                                   children: children)
             nextIdentifier += 1
             return node
         }
@@ -561,10 +561,10 @@ import QuartzCore
         children.append(containerNode)
 
         let rootNode = OuterframeAccessibilityNode(identifier: 0,
-                                               role: .container,
-                                               frame: layers.rootLayer.frame,
-                                               label: "Virtualized animation scroll",
-                                               children: children)
+                                                   role: .container,
+                                                   frame: layers.rootLayer.frame,
+                                                   label: "Virtualized animation scroll",
+                                                   children: children)
         let snapshot = OuterframeAccessibilitySnapshot(rootNodes: [rootNode])
         return snapshot.serializedData()
     }

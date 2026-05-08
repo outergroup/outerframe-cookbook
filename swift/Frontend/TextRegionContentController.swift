@@ -246,8 +246,8 @@ private final class TextKitDisplayLayer: CALayer {
         selectionLayers = []
         layers = nil
         appConnection.setPasteboardCapabilities(OuterframeContentEditingCapabilities(canCopy: false,
-                                                                                    canCut: false,
-                                                                                    acceptablePasteboardTypeIdentifiers: []))
+                                                                                     canCut: false,
+                                                                                     acceptablePasteboardTypeIdentifiers: []))
         updateCursor(.arrow)
     }
 
@@ -508,8 +508,8 @@ private final class TextKitDisplayLayer: CALayer {
 
     private func updateEditingCapabilities() {
         appConnection.setPasteboardCapabilities(OuterframeContentEditingCapabilities(canCopy: selectionRange?.length ?? 0 > 0,
-                                                                                    canCut: false,
-                                                                                    acceptablePasteboardTypeIdentifiers: []))
+                                                                                     canCut: false,
+                                                                                     acceptablePasteboardTypeIdentifiers: []))
     }
 
     private func updateCursor(_ cursor: PluginCursorType, force: Bool = false) {
