@@ -81,6 +81,7 @@ void OFCookbookRenderPageFrame(OFCookbookPageContext *context, void (*render)(OF
 void OFCookbookUpdateRoutePageMetadata(OFCookbookPageContext *context);
 void OFCookbookUpdatePasteboardCapabilities(OFCookbookPageContext *context, NSString *selected_text);
 void OFCookbookSendCopySelectedPasteboardResponse(OFCookbookPageContext *context, OFUUID request_id, NSString *selected_text);
+void OFCookbookSendEditCommandValidationResponse(OFCookbookPageContext *context, OFUUID request_id, OFEditCommandSet requested_commands, NSString *selected_text);
 void OFCookbookSendAccessibilitySnapshotResponse(OFCookbookPageContext *context, OFUUID request_id, const OFBuffer *snapshot);
 void OFCookbookSendDefaultAccessibilitySnapshotResponse(OFCookbookPageContext *context, OFUUID request_id);
 OFCookbookPageContext *OFCookbookGetPageContext(void *runtime);

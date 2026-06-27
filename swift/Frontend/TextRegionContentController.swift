@@ -162,7 +162,6 @@ private final class TextKitDisplayLayer: CALayer {
         scrollbarController?.delegate = self
 
         layout()
-        updateEditingCapabilities()
 
         return root
     }
@@ -195,8 +194,14 @@ private final class TextKitDisplayLayer: CALayer {
         case .accessibilitySnapshotRequest(let requestID):
             context.sendAccessibilitySnapshotResponse(requestID: requestID, data: accessibilitySnapshotData())
 
-        case .copySelectedPasteboardRequest(let requestID):
+        case .selectionToPasteboardCopyRequest(let requestID):
             context.sendCopySelectedPasteboardResponse(requestID: requestID, items: pasteboardItemsForCopy())
+
+        case .selectionToPasteboardCutRequest(let requestID):
+            context.sendCopySelectedPasteboardResponse(requestID: requestID, items: [])
+
+        case .editCommandValidationRequest(let requestID, let commands):
+            context.sendEditCommandValidationResponse(requestID: requestID, enabledCommands: enabledEditCommands(for: commands))
 
         case .mouseMoved(let point, let modifierFlags):
             guard context.isPointInsideContent(point) else { return }
@@ -245,9 +250,6 @@ private final class TextKitDisplayLayer: CALayer {
         scrollbarController = nil
         selectionLayers = []
         layers = nil
-        appConnection.setPasteboardCapabilities(OuterframeContentEditingCapabilities(canCopy: false,
-                                                                                     canCut: false,
-                                                                                     acceptablePasteboardTypeIdentifiers: []))
         updateCursor(.arrow)
     }
 
@@ -384,17 +386,17 @@ private final class TextKitDisplayLayer: CALayer {
             return []
         }
 
-        var items: [OuterContentPasteboardItem] = []
+        var representations: [OuterContentPasteboardRepresentation] = []
         if let stringData = selectedText.string.data(using: .utf8) {
-            items.append(OuterContentPasteboardItem(typeIdentifier: NSPasteboard.PasteboardType.string.rawValue,
-                                                    data: stringData))
+            representations.append(OuterContentPasteboardRepresentation(typeIdentifier: NSPasteboard.PasteboardType.string.rawValue,
+                                                                        data: stringData))
         }
         if let rtfData = try? selectedText.data(from: NSRange(location: 0, length: selectedText.length),
                                                 documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]) {
-            items.append(OuterContentPasteboardItem(typeIdentifier: NSPasteboard.PasteboardType.rtf.rawValue,
-                                                    data: rtfData))
+            representations.append(OuterContentPasteboardRepresentation(typeIdentifier: NSPasteboard.PasteboardType.rtf.rawValue,
+                                                                        data: rtfData))
         }
-        return items
+        return representations.isEmpty ? [] : [OuterContentPasteboardItem(representations: representations)]
     }
 
     private func layout() {
@@ -459,7 +461,6 @@ private final class TextKitDisplayLayer: CALayer {
         textLayoutManager.textSelections = selection.map { [$0] } ?? []
         selectionRange = rangeOffsets(for: selection)
         updateSelectionLayers()
-        updateEditingCapabilities()
         appConnection.notifyAccessibilityTreeChanged(.selectedChildrenChanged)
     }
 
@@ -504,12 +505,6 @@ private final class TextKitDisplayLayer: CALayer {
         }
 
         CATransaction.commit()
-    }
-
-    private func updateEditingCapabilities() {
-        appConnection.setPasteboardCapabilities(OuterframeContentEditingCapabilities(canCopy: selectionRange?.length ?? 0 > 0,
-                                                                                     canCut: false,
-                                                                                     acceptablePasteboardTypeIdentifiers: []))
     }
 
     private func updateCursor(_ cursor: PluginCursorType, force: Bool = false) {

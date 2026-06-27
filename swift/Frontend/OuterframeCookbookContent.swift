@@ -38,6 +38,7 @@ protocol CookbookPageController: AnyObject {
                      hasPreciseScrollingDeltas: Bool)
     func accessibilitySnapshotData() -> Data?
     func pasteboardItemsForCopy() -> [OuterContentPasteboardItem]
+    func enabledEditCommands(for requestedCommands: OuterframeEditCommandSet) -> OuterframeEditCommandSet
 }
 
 extension CookbookPageController {
@@ -57,6 +58,13 @@ extension CookbookPageController {
     }
     func pasteboardItemsForCopy() -> [OuterContentPasteboardItem] {
         []
+    }
+    func enabledEditCommands(for requestedCommands: OuterframeEditCommandSet) -> OuterframeEditCommandSet {
+        var enabledCommands = OuterframeEditCommandSet()
+        if requestedCommands.contains(.copy), !pasteboardItemsForCopy().isEmpty {
+            enabledCommands.insert(.copy)
+        }
+        return enabledCommands
     }
 }
 
@@ -274,6 +282,10 @@ final class CookbookPageContext {
 
     func sendCopySelectedPasteboardResponse(requestID: UUID, items: [OuterContentPasteboardItem]) {
         host.sendCopySelectedPasteboardResponse(requestID: requestID, items: items)
+    }
+
+    func sendEditCommandValidationResponse(requestID: UUID, enabledCommands: OuterframeEditCommandSet) {
+        host.sendEditCommandValidationResponse(requestID: requestID, enabledCommands: enabledCommands)
     }
 
     func requestShutdown() {

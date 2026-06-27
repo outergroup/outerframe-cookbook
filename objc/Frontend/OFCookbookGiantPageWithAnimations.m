@@ -207,8 +207,14 @@ static bool OFCookbookGiantPageWithAnimationsHandleBrowserMessage(OFCookbookPage
         case OFBrowserMessageAccessibilitySnapshotRequest:
             OFCookbookSendDefaultAccessibilitySnapshotResponse(context, message->as.request.request_id);
             return true;
-        case OFBrowserMessageCopySelectedPasteboardRequest:
+        case OFBrowserMessageSelectionToPasteboardCopyRequest:
             OFCookbookSendCopySelectedPasteboardResponse(context, message->as.request.request_id, nil);
+            return true;
+        case OFBrowserMessageSelectionToPasteboardCutRequest:
+            OFCookbookSendCopySelectedPasteboardResponse(context, message->as.request.request_id, nil);
+            return true;
+        case OFBrowserMessageEditCommandValidationRequest:
+            OFCookbookSendEditCommandValidationResponse(context, message->as.edit_validation.request_id, message->as.edit_validation.commands, nil);
             return true;
         case OFBrowserMessageScrollWheelEvent:
             OFCookbookGiantPageWithAnimationsScroll(context,

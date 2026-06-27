@@ -145,8 +145,14 @@ import QuartzCore
         case .accessibilitySnapshotRequest(let requestID):
             context.sendAccessibilitySnapshotResponse(requestID: requestID, data: accessibilitySnapshotData())
 
-        case .copySelectedPasteboardRequest(let requestID):
+        case .selectionToPasteboardCopyRequest(let requestID):
             context.sendCopySelectedPasteboardResponse(requestID: requestID, items: pasteboardItemsForCopy())
+
+        case .selectionToPasteboardCutRequest(let requestID):
+            context.sendCopySelectedPasteboardResponse(requestID: requestID, items: [])
+
+        case .editCommandValidationRequest(let requestID, let commands):
+            context.sendEditCommandValidationResponse(requestID: requestID, enabledCommands: enabledEditCommands(for: commands))
 
         case .shutdown:
             context.requestShutdown()

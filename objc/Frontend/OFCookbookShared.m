@@ -228,6 +228,14 @@ void OFCookbookSendCopySelectedPasteboardResponse(OFCookbookPageContext *context
     OFHostSendCopySelectedPasteboardResponse(context->host, request_id, &item, 1);
 }
 
+void OFCookbookSendEditCommandValidationResponse(OFCookbookPageContext *context, OFUUID request_id, OFEditCommandSet requested_commands, NSString *selected_text) {
+    OFEditCommandSet enabled_commands = 0;
+    if ((requested_commands & OFEditCommandCopy) != 0 && selected_text.length > 0) {
+        enabled_commands |= OFEditCommandCopy;
+    }
+    OFHostSendEditCommandValidationResponse(context->host, request_id, enabled_commands);
+}
+
 @implementation OFTextKitDisplayLayer
 
 - (instancetype)init {

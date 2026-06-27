@@ -758,8 +758,17 @@ static bool OFCookbookTextRegionHandleBrowserMessage(OFCookbookPageContext *cont
             OFBufferFree(&snapshot);
             return true;
         }
-        case OFBrowserMessageCopySelectedPasteboardRequest:
+        case OFBrowserMessageSelectionToPasteboardCopyRequest:
             OFCookbookSendCopySelectedPasteboardResponse(context, browser_message->as.request.request_id, state.selectedCopyText);
+            return true;
+        case OFBrowserMessageSelectionToPasteboardCutRequest:
+            OFCookbookSendCopySelectedPasteboardResponse(context, browser_message->as.request.request_id, nil);
+            return true;
+        case OFBrowserMessageEditCommandValidationRequest:
+            OFCookbookSendEditCommandValidationResponse(context,
+                                                        browser_message->as.edit_validation.request_id,
+                                                        browser_message->as.edit_validation.commands,
+                                                        state.selectedCopyText);
             return true;
         case OFBrowserMessageMouseMoved: {
             CGPoint point = OFCookbookViewportPointFromRootPoint(context, CGPointMake(browser_message->as.mouse.x, browser_message->as.mouse.y));
